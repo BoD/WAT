@@ -39,3 +39,6 @@ class PublishBwmWindows(val bwmWindows: List<BwmWindow>) : Message()
 
 @Serializable
 class FocusOrCreateBwmWindowMessage(val bwmWindow: BwmWindow) : Message()
+
+@Serializable
+class SaveBwmWindowMessage(val bwmWindow: BwmWindow, val windowName: String) : Message()

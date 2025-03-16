@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.web.dom.B
 import org.jetbrains.compose.web.dom.Li
+import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
@@ -64,6 +65,21 @@ class Popup {
               }
             } else {
               Text(bwmWindow.name ?: "Unsaved")
+            }
+            if (!bwmWindow.isSaved) {
+              Span(
+                attrs = {
+                  onClick {
+                    it.stopPropagation()
+                    val windowName: String? = js("""prompt("Window name:")""")
+                    if (!windowName.isNullOrBlank()) {
+                      messenger.sendSaveBwmWindowMessage(bwmWindow = bwmWindow, windowName = windowName.trim())
+                    }
+                  }
+                },
+              ) {
+                Text(" 💾")
+              }
             }
             Ul {
               for (savedTab in bwmWindow.tabs) {

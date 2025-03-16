@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import org.jraf.bwm.shared.messaging.FocusOrCreateBwmWindowMessage
 import org.jraf.bwm.shared.messaging.Messenger
 import org.jraf.bwm.shared.messaging.RequestPublishBwmWindows
+import org.jraf.bwm.shared.messaging.SaveBwmWindowMessage
 import org.jraf.bwm.shared.messaging.asMessage
 import org.jraf.bwm.shared.model.BwmWindow
 import org.jraf.bwm.shared.model.BwmWindowRepository
@@ -80,65 +81,51 @@ class ServiceWorker {
   private fun observeWindows() {
     chrome.windows.onCreated.addListener(
       callback = { window ->
-        console.log("onCreated: %o", window)
         bwmWindowRepository.addSystemWindow(window)
       },
       filters = OnCreatedFilters(windowTypes = arrayOf(WindowType.normal)),
     )
     chrome.windows.onRemoved.addListener { systemWindowId ->
-      console.log("onRemoved: %o", systemWindowId)
       bwmWindowRepository.unbind(systemWindowId)
     }
     chrome.windows.onFocusChanged.addListener { systemWindowId ->
-      console.log("onFocusChanged: %o", systemWindowId)
       bwmWindowRepository.focusSystemWindow(systemWindowId)
     }
   }
 
   private fun observeTabs() {
     chrome.tabs.onCreated.addListener { tab ->
-      console.log("onCreated: tab=%o", tab)
       updateWindowRepository()
     }
     chrome.tabs.onUpdated.addListener { tabId, changeInfo, tab ->
-      console.log("onUpdated: tabId=%o changeInfo=%o tab=%o", tab)
       updateWindowRepository()
     }
     chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
-      console.log("onRemoved: tabId=%o removeInfo=%o", tabId, removeInfo)
       updateWindowRepository()
     }
     chrome.tabs.onMoved.addListener { tabId, moveInfo ->
-      console.log("onMoved: tabId=%o moveInfo=%o", tabId, moveInfo)
       updateWindowRepository()
     }
     chrome.tabs.onAttached.addListener { tabId, attachInfo ->
-      console.log("onAttached: tabId=%o attachInfo=%o", tabId, attachInfo)
       updateWindowRepository()
     }
     chrome.tabs.onDetached.addListener { tabId, detachInfo ->
-      console.log("onDetached: tabId=%o detachInfo=%o", tabId, detachInfo)
       updateWindowRepository()
     }
     chrome.tabs.onReplaced.addListener { addedTabId, removedTabId ->
-      console.log("onReplaced: addedTabId=%o removedTabId=%o", addedTabId, removedTabId)
       updateWindowRepository()
     }
     chrome.tabs.onActivated.addListener { activeInfo ->
-      console.log("onActivated: activeInfo=%o", activeInfo)
       updateWindowRepository()
     }
   }
 
   private fun registerMessageListener() {
     chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
-      console.log("Received message %o", msg)
       when (val message = msg.asMessage()) {
 //        GetSavedWindowsMessage -> {
-//          console.log("Received GetSavedWindowsMessage")
 //          GlobalScope.launch {
 //            val response = PublishBwmWindows(bwmWindowRepository.loadSavedWindows())
-//            console.log("Responding %o", response)
 //            sendResponse(Json.encodeToDynamic(response))
 //          }
 //        }
@@ -149,9 +136,12 @@ class ServiceWorker {
 
         is FocusOrCreateBwmWindowMessage -> {
           val bwmWindow = message.bwmWindow
-          console.log("bwmWindow: %o", bwmWindow)
           focusOrCreateBwmWindow(bwmWindow)
 
+        }
+
+        is SaveBwmWindowMessage -> {
+          bwmWindowRepository.saveWindow(bwmWindowId = message.bwmWindow.id, name = message.windowName)
         }
 
         else -> {

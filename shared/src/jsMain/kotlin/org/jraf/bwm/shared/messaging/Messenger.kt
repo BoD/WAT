@@ -41,7 +41,6 @@ class Messenger {
 
 //  suspend fun sendGetSavedWindowsMessage(): List<BwmWindow> {
 //    val response = sendMessage(GetSavedWindowsMessage).await()
-//    console.log("Got response %o", response)
 //    val getSavedWindowsResponse = Json.decodeFromDynamic<PublishBwmWindows>(response)
 //    return getSavedWindowsResponse.bwmWindows
 //  }
@@ -52,13 +51,16 @@ class Messenger {
 
   fun sendPublishBwmWindows(bwmWindows: List<BwmWindow>) {
     val message = PublishBwmWindows(bwmWindows)
-    console.log("Sending message %o", message)
     sendMessage(message)
-    console.log("Message sent")
   }
 
   fun sendFocusOrCreateBwmWindowMessage(bwmWindow: BwmWindow) {
     val message = FocusOrCreateBwmWindowMessage(bwmWindow)
+    sendMessage(message)
+  }
+
+  fun sendSaveBwmWindowMessage(bwmWindow: BwmWindow, windowName: String) {
+    val message = SaveBwmWindowMessage(bwmWindow, windowName)
     sendMessage(message)
   }
 }
