@@ -23,11 +23,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-@file:OptIn(ExperimentalJsExport::class)
-
 package org.jraf.bwm.shared.messaging
 
 import kotlinx.serialization.Serializable
+import org.jraf.bwm.shared.model.SavedWindow
 
 @Serializable
 sealed class Message
@@ -35,25 +34,8 @@ sealed class Message
 @Serializable
 data object GetSavedWindowsMessage : Message()
 
-@JsExport
-class JsonGetSavedWindowsResponse(
-  val savedWindows: Array<JsonSavedWindow>
-)
-
-@JsExport
-class JsonSavedWindow(
-  val id: String,
-  val name: String,
-  val tabs: Array<JsonSavedTab>,
-)
-
-@JsExport
-class JsonSavedTab(
-  val title: String,
-  val url: String,
-  val favIconUrl: String?,
-)
-
+@Serializable
+class GetSavedWindowsResponse(val savedWindows: List<SavedWindow>) : Message()
 
 @Serializable
 class OpenOrFocusSavedWindowMessage(val savedWindowId: String) : Message()

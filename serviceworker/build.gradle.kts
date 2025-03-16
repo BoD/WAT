@@ -21,6 +21,9 @@ project.afterEvaluate {
 kotlin {
   js {
     browser()
+    compilerOptions {
+      optIn.addAll("kotlinx.coroutines.DelicateCoroutinesApi", "kotlinx.serialization.ExperimentalSerializationApi")
+    }
     binaries.executable()
   }
   sourceSets.commonMain {

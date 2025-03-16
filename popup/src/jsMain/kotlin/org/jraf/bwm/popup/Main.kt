@@ -23,37 +23,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-@file:OptIn(DelicateCoroutinesApi::class, ExperimentalUuidApi::class)
-
 package org.jraf.bwm.popup
-
-import kotlinx.browser.document
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import org.jraf.bwm.shared.messaging.Messenger
-import kotlin.uuid.ExperimentalUuidApi
-
-private val messenger = Messenger()
 
 // This is executed every time popup.html is opened.
 fun main() {
   console.log("Popup opened")
-  document.addEventListener(
-    type = "DOMContentLoaded",
-    callback = {
-      document.querySelector("button")?.addEventListener(
-        type = "click",
-        callback = { helloWorld() },
-      )
-    },
-  )
-}
-
-fun helloWorld() {
-  console.log("Hello World!")
-  GlobalScope.launch {
-    val savedWindows = messenger.sendGetSavedWindowsMessage()
-    messenger.sendOpenOrFocusSavedWindowMessage(savedWindows.first().id)
-  }
+  Popup().start()
 }

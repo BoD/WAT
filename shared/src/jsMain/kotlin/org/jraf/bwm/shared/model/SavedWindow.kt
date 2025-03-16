@@ -25,16 +25,17 @@
 
 package org.jraf.bwm.shared.model
 
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import kotlinx.serialization.Serializable
 
-@OptIn(ExperimentalUuidApi::class)
+// These are serializable because they're passed around via messages
+@Serializable
 data class SavedWindow(
-  val id: Uuid,
+  val id: String,
   val name: String,
   val tabs: List<SavedTab>,
 )
 
+@Serializable
 data class SavedTab(
   val title: String,
   val url: String,

@@ -2,6 +2,8 @@ plugins {
   kotlin("multiplatform").apply(false)
   kotlin("plugin.js-plain-objects").apply(false)
   kotlin("plugin.serialization").apply(false)
+  id("org.jetbrains.compose").apply(false)
+  kotlin("plugin.compose").apply(false)
 }
 
 group = "org.jraf"

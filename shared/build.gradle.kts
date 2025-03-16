@@ -26,6 +26,9 @@ val generateVersionKtTask = tasks.register("generateVersionKt") {
 kotlin {
   js {
     browser()
+    compilerOptions {
+      optIn.addAll("kotlinx.coroutines.DelicateCoroutinesApi", "kotlinx.serialization.ExperimentalSerializationApi")
+    }
   }
 
   sourceSets.commonMain {

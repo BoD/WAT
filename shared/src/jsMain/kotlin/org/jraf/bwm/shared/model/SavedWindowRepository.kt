@@ -33,7 +33,7 @@ class SavedWindowRepository {
   private val savedWindows = listOf(
     SavedWindow(
       name = "Dev",
-      id = Uuid.random(),
+      id = Uuid.random().toHexString(),
       tabs = listOf(
         SavedTab(
           title = "Google",
@@ -49,7 +49,7 @@ class SavedWindowRepository {
     ),
     SavedWindow(
       name = "Personal",
-      id = Uuid.random(),
+      id = Uuid.random().toHexString(),
       tabs = listOf(
         SavedTab(
           title = "Reddit",
@@ -89,7 +89,7 @@ class SavedWindowRepository {
     return windowIdToSavedWindow.entries.firstOrNull { it.value == savedWindow }?.key
   }
 
-  fun getSavedWindowById(id: Uuid): SavedWindow? {
+  fun getSavedWindowById(id: String): SavedWindow? {
     return savedWindows.firstOrNull { it.id == id }
   }
 }

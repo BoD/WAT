@@ -23,20 +23,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-@file:OptIn(ExperimentalSerializationApi::class, ExperimentalUuidApi::class)
+@file:OptIn(ExperimentalUuidApi::class)
 
 package org.jraf.bwm.shared.messaging
 
 import kotlinx.coroutines.await
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.bwm.shared.model.SavedTab
 import org.jraf.bwm.shared.model.SavedWindow
 import kotlin.js.Promise
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 class Messenger {
   private fun sendMessage(message: Message): Promise<Any?> {
@@ -46,23 +43,12 @@ class Messenger {
   suspend fun sendGetSavedWindowsMessage(): List<SavedWindow> {
     val response = sendMessage(GetSavedWindowsMessage).await()
     console.log("Got response %o", response)
-    return response.unsafeCast<JsonGetSavedWindowsResponse>().savedWindows.map { window ->
-      SavedWindow(
-        id = Uuid.parseHex(window.id),
-        name = window.name,
-        tabs = window.tabs.map { tab ->
-          SavedTab(
-            title = tab.title,
-            url = tab.url,
-            favIconUrl = tab.favIconUrl,
-          )
-        },
-      )
-    }
+    val getSavedWindowsResponse = Json.decodeFromDynamic<GetSavedWindowsResponse>(response)
+    return getSavedWindowsResponse.savedWindows
   }
 
-  fun sendOpenOrFocusSavedWindowMessage(savedWindowId: Uuid) {
-    val message = OpenOrFocusSavedWindowMessage(savedWindowId.toHexString())
+  fun sendOpenOrFocusSavedWindowMessage(savedWindowId: String) {
+    val message = OpenOrFocusSavedWindowMessage(savedWindowId)
     sendMessage(message)
   }
 }
