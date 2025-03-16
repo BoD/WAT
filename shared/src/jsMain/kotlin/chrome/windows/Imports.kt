@@ -33,19 +33,26 @@ import kotlin.js.Promise
 external val onFocusChanged: OnFocusChanged
 
 external interface OnFocusChanged {
-  fun addListener(callback: (windowId: Number) -> Unit)
+  fun addListener(callback: (windowId: Int) -> Unit)
 }
+
+external val onCreated: OnCreated
+
+external interface OnCreated {
+  fun addListener(callback: (window: Window) -> Unit, filters: OnCreatedFilters)
+}
+
 
 external val onRemoved: OnRemoved
 
 external interface OnRemoved {
-  fun addListener(callback: (windowId: Number) -> Unit)
+  fun addListener(callback: (windowId: Int) -> Unit)
 }
 
 external fun getAll(queryOptions: QueryOptions?): Promise<Array<Window>>
 
 external interface Window {
-  val id: Number?
+  val id: Int?
   val focused: Boolean
   val incognito : Boolean
   val tabs: Array<Tab>?
@@ -54,4 +61,4 @@ external interface Window {
 
 external fun create(createData: CreateData): Promise<Window>
 
-external fun update(windowId: Number, updateInfo: UpdateInfo): Promise<Window>
+external fun update(windowId: Int, updateInfo: UpdateInfo): Promise<Window>

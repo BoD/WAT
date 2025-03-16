@@ -26,16 +26,16 @@
 package org.jraf.bwm.shared.messaging
 
 import kotlinx.serialization.Serializable
-import org.jraf.bwm.shared.model.SavedWindow
+import org.jraf.bwm.shared.model.BwmWindow
 
 @Serializable
 sealed class Message
 
 @Serializable
-data object GetSavedWindowsMessage : Message()
+data object RequestPublishBwmWindows : Message()
 
 @Serializable
-class GetSavedWindowsResponse(val savedWindows: List<SavedWindow>) : Message()
+class PublishBwmWindows(val bwmWindows: List<BwmWindow>) : Message()
 
 @Serializable
-class OpenOrFocusSavedWindowMessage(val savedWindowId: String) : Message()
+class FocusOrCreateBwmWindowMessage(val bwmWindow: BwmWindow) : Message()

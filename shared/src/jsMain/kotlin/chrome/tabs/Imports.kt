@@ -29,10 +29,114 @@ package chrome.tabs
 
 import kotlin.js.Promise
 
+external fun get(tabId: Int): Promise<Tab>
+
+external interface Tab {
+  val id: Int
+  val windowId: Int
+  val active: Boolean
+  val url: String
+  val title: String
+  val favIconUrl: String?
+}
+
 external val onActivated: OnActivated
 
 external interface OnActivated {
   fun addListener(callback: (activeInfo: ActiveInfo) -> Unit)
 }
 
-external fun get(tabId: Number): Promise<Tab>
+external interface ActiveInfo {
+  val tabId: Int
+  val windowId: Int
+}
+
+
+external val onAttached: OnAttached
+
+external interface OnAttached {
+  fun addListener(callback: (tabId: Int, attachInfo: AttachInfo) -> Unit)
+}
+
+external interface AttachInfo {
+  val newPosition: Int
+  val newWindowId: Int
+}
+
+
+external val onCreated: OnCreated
+
+external interface OnCreated {
+  fun addListener(callback: (tab: Tab) -> Unit)
+}
+
+
+external val onDetached: OnDetached
+
+external interface OnDetached {
+  fun addListener(callback: (tabId: Int, detachInfo: DetachInfo) -> Unit)
+}
+
+external interface DetachInfo {
+  val oldPosition: Int
+  val oldWindowId: Int
+}
+
+
+external val onHighlighted: OnHighlighted
+
+external interface OnHighlighted {
+  fun addListener(callback: (highlightInfo: HighlightInfo) -> Unit)
+}
+
+external interface HighlightInfo {
+  val tabIds: Array<Int>
+  val windowId: Int
+}
+
+
+external val onMoved: OnMoved
+
+external interface OnMoved {
+  fun addListener(callback: (tabId: Int, moveInfo: MoveInfo) -> Unit)
+}
+
+external interface MoveInfo {
+  val fromIndex: Int
+  val toIndex: Int
+  val windowId: Int
+}
+
+
+external val onRemoved: OnRemoved
+
+external interface OnRemoved {
+  fun addListener(callback: (tabId: Int, removeInfo: RemoveInfo) -> Unit)
+}
+
+external interface RemoveInfo {
+  val isWindowClosing: Boolean
+  val windowId: Int
+}
+
+
+external val onReplaced: OnReplaced
+
+external interface OnReplaced {
+  fun addListener(callback: (addedTabId: Int, removedTabId: Int) -> Unit)
+}
+
+
+external val onUpdated: OnUpdated
+
+external interface OnUpdated {
+  fun addListener(callback: (tabId: Int, changeInfo: ChangeInfo, tab: Tab) -> Unit)
+}
+
+external interface ChangeInfo {
+  val url: String?
+  val title: String?
+  val favIconUrl: String?
+  val discarded: Boolean?
+  val status: String?
+}

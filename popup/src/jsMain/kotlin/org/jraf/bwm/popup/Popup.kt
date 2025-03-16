@@ -25,41 +25,56 @@
 
 package org.jraf.bwm.popup
 
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.jetbrains.compose.web.dom.B
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
 import org.jraf.bwm.shared.messaging.Messenger
-import org.jraf.bwm.shared.model.SavedWindow
+import org.jraf.bwm.shared.messaging.PublishBwmWindows
+import org.jraf.bwm.shared.messaging.asMessage
+import org.jraf.bwm.shared.model.BwmWindow
 
 class Popup {
   private val messenger = Messenger()
 
+  private val bwmWindows: MutableStateFlow<List<BwmWindow>> = MutableStateFlow(emptyList())
+
   fun start() {
+    registerMessageListener()
+    messenger.sendRequestPublishBwmWindows()
+
     renderComposable(rootElementId = "root") {
-      var savedWindows: List<SavedWindow> by remember { mutableStateOf(emptyList()) }
-      LaunchedEffect(Unit) {
-        savedWindows = messenger.sendGetSavedWindowsMessage()
-      }
+      val bwmWindows: List<BwmWindow> by bwmWindows.collectAsState()
       Ul {
-        for (savedWindow in savedWindows) {
+        for (bwmWindow in bwmWindows) {
           Li(
             attrs = {
               onClick {
-                messenger.sendOpenOrFocusSavedWindowMessage(savedWindow.id)
+                messenger.sendFocusOrCreateBwmWindowMessage(bwmWindow)
               }
             },
           ) {
-            Text(savedWindow.name)
+            if (bwmWindow.focused) {
+              B {
+                Text(bwmWindow.name ?: "Unsaved")
+              }
+            } else {
+              Text(bwmWindow.name ?: "Unsaved")
+            }
             Ul {
-              for (savedTab in savedWindow.tabs) {
+              for (savedTab in bwmWindow.tabs) {
                 Li {
-                  Text(savedTab.title)
+                  if (bwmWindow.focused && savedTab.active) {
+                    B {
+                      Text(savedTab.title)
+                    }
+                  } else {
+                    Text(savedTab.title)
+                  }
                 }
               }
             }
@@ -68,4 +83,22 @@ class Popup {
       }
     }
   }
+
+  private fun registerMessageListener() {
+    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
+      when (val message = msg.asMessage()) {
+        is PublishBwmWindows -> {
+          bwmWindows.value = message.bwmWindows
+        }
+
+        else -> {
+          // Ignore
+        }
+      }
+      // Return true to have the right to respond asynchronously
+      // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#sending_an_asynchronous_response_using_sendresponse
+      return@addListener true
+    }
+  }
+
 }

@@ -25,104 +25,133 @@
 
 package org.jraf.bwm.serviceworker.main
 
-import chrome.action.onClicked
-import chrome.runtime.getURL
-import chrome.system.display.getInfo
 import chrome.windows.CreateData
 import chrome.windows.CreateType
+import chrome.windows.OnCreatedFilters
 import chrome.windows.QueryOptions
 import chrome.windows.UpdateInfo
 import chrome.windows.WindowType
-import chrome.windows.getAll
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.bwm.shared.messaging.GetSavedWindowsMessage
-import org.jraf.bwm.shared.messaging.GetSavedWindowsResponse
-import org.jraf.bwm.shared.messaging.OpenOrFocusSavedWindowMessage
+import org.jraf.bwm.shared.messaging.FocusOrCreateBwmWindowMessage
+import org.jraf.bwm.shared.messaging.Messenger
+import org.jraf.bwm.shared.messaging.RequestPublishBwmWindows
 import org.jraf.bwm.shared.messaging.asMessage
-import org.jraf.bwm.shared.model.SavedWindow
-import org.jraf.bwm.shared.model.SavedWindowRepository
+import org.jraf.bwm.shared.model.BwmWindow
+import org.jraf.bwm.shared.model.BwmWindowRepository
 
 class ServiceWorker {
-  private val savedWindowRepository = SavedWindowRepository()
+  private val bwmWindowRepository = BwmWindowRepository()
 
-  private var popupWindowId: Number? = null
+  private val messenger = Messenger()
+
+  private var popupWindowId: Int? = null
 
   fun start() {
-    setupActionButton()
+    initWindowRepository()
+    observeWindows()
+    observeTabs()
+    registerMessageListener()
 
-    chrome.windows.onRemoved.addListener { windowId ->
-      console.log("onRemoved: %o", windowId)
-      savedWindowRepository.unbindSavedWindow(windowId)
+    GlobalScope.launch {
+      bwmWindowRepository.bwmWindows.collect {
+        messenger.sendPublishBwmWindows(it)
+      }
     }
 
-
-//  chrome.tabs.onActivated.addListener { activeInfo ->
-//    console.log("onActivated: %o", activeInfo)
-//    GlobalScope.launch {
-//      val tab = chrome.tabs.get(activeInfo.tabId).await()
-//      console.log("tab: %o", tab)
-//    }
-//  }
-
-//  chrome.windows.onFocusChanged.addListener { windowId ->
-//    console.log("onFocusChanged: %o", windowId)
-//    GlobalScope.launch {
-//      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
-//      console.log("windows: %o", windows)
-//    }
-//  }
-
-    registerMessageListener()
+    setupActionButton()
   }
 
-  private fun setupActionButton() {
-    // "action" is the extension's icon in the toolbar
-    onClicked.addListener {
-      GlobalScope.launch {
-        // If the popup window is already open, focus it, otherwise create it
-        if (getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
-          chrome.windows.update(popupWindowId!!, UpdateInfo(focused = true))
-        } else {
-          val height = getInfo().await().firstOrNull { it.isPrimary }?.workArea?.height ?: 800
-          popupWindowId = chrome.windows.create(
-            CreateData(
-              url = arrayOf(getURL("popup.html")),
-              type = CreateType.popup,
-              focused = true,
-              top = 0,
-              left = 0,
-              width = 320,
-              height = height,
-            ),
-          ).await().id
-        }
-      }
+  private fun initWindowRepository() {
+    GlobalScope.launch {
+      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+      bwmWindowRepository.addSystemWindows(windows.toList())
+    }
+  }
+
+  private fun updateWindowRepository() {
+    GlobalScope.launch {
+      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+      bwmWindowRepository.updateBwmWindows(windows.toList())
+    }
+  }
+
+  private fun observeWindows() {
+    chrome.windows.onCreated.addListener(
+      callback = { window ->
+        console.log("onCreated: %o", window)
+        bwmWindowRepository.addSystemWindow(window)
+      },
+      filters = OnCreatedFilters(windowTypes = arrayOf(WindowType.normal)),
+    )
+    chrome.windows.onRemoved.addListener { systemWindowId ->
+      console.log("onRemoved: %o", systemWindowId)
+      bwmWindowRepository.unbind(systemWindowId)
+    }
+    chrome.windows.onFocusChanged.addListener { systemWindowId ->
+      console.log("onFocusChanged: %o", systemWindowId)
+      bwmWindowRepository.focusSystemWindow(systemWindowId)
+    }
+  }
+
+  private fun observeTabs() {
+    chrome.tabs.onCreated.addListener { tab ->
+      console.log("onCreated: tab=%o", tab)
+      updateWindowRepository()
+    }
+    chrome.tabs.onUpdated.addListener { tabId, changeInfo, tab ->
+      console.log("onUpdated: tabId=%o changeInfo=%o tab=%o", tab)
+      updateWindowRepository()
+    }
+    chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
+      console.log("onRemoved: tabId=%o removeInfo=%o", tabId, removeInfo)
+      updateWindowRepository()
+    }
+    chrome.tabs.onMoved.addListener { tabId, moveInfo ->
+      console.log("onMoved: tabId=%o moveInfo=%o", tabId, moveInfo)
+      updateWindowRepository()
+    }
+    chrome.tabs.onAttached.addListener { tabId, attachInfo ->
+      console.log("onAttached: tabId=%o attachInfo=%o", tabId, attachInfo)
+      updateWindowRepository()
+    }
+    chrome.tabs.onDetached.addListener { tabId, detachInfo ->
+      console.log("onDetached: tabId=%o detachInfo=%o", tabId, detachInfo)
+      updateWindowRepository()
+    }
+    chrome.tabs.onReplaced.addListener { addedTabId, removedTabId ->
+      console.log("onReplaced: addedTabId=%o removedTabId=%o", addedTabId, removedTabId)
+      updateWindowRepository()
+    }
+    chrome.tabs.onActivated.addListener { activeInfo ->
+      console.log("onActivated: activeInfo=%o", activeInfo)
+      updateWindowRepository()
     }
   }
 
   private fun registerMessageListener() {
     chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
+      console.log("Received message %o", msg)
       when (val message = msg.asMessage()) {
-        GetSavedWindowsMessage -> {
-          console.log("Received GetSavedWindowsMessage")
-          GlobalScope.launch {
-            val response = GetSavedWindowsResponse(savedWindowRepository.loadSavedWindows())
-            console.log("Responding %o", response)
-            sendResponse(Json.encodeToDynamic(response))
-          }
+//        GetSavedWindowsMessage -> {
+//          console.log("Received GetSavedWindowsMessage")
+//          GlobalScope.launch {
+//            val response = PublishBwmWindows(bwmWindowRepository.loadSavedWindows())
+//            console.log("Responding %o", response)
+//            sendResponse(Json.encodeToDynamic(response))
+//          }
+//        }
+
+        RequestPublishBwmWindows -> {
+          messenger.sendPublishBwmWindows(bwmWindowRepository.bwmWindows.value)
         }
 
-        is OpenOrFocusSavedWindowMessage -> {
-          console.log("Received OpenOrFocusSavedWindowMessage")
-          val savedWindow = savedWindowRepository.getSavedWindowById(message.savedWindowId)
-          console.log("savedWindow: %o", savedWindow)
-          if (savedWindow != null) {
-            openOrFocusSavedWindow(savedWindow)
-          }
+        is FocusOrCreateBwmWindowMessage -> {
+          val bwmWindow = message.bwmWindow
+          console.log("bwmWindow: %o", bwmWindow)
+          focusOrCreateBwmWindow(bwmWindow)
+
         }
 
         else -> {
@@ -135,16 +164,40 @@ class ServiceWorker {
     }
   }
 
-  private fun openOrFocusSavedWindow(savedWindow: SavedWindow) {
-    val windowId = savedWindowRepository.getWindowIdBySavedWindow(savedWindow)
-    if (windowId != null) {
+  private fun focusOrCreateBwmWindow(bwmWindow: BwmWindow) {
+    if (bwmWindow.systemWindowId != null) {
       GlobalScope.launch {
-        chrome.windows.update(windowId, UpdateInfo(focused = true)).await()
+        chrome.windows.update(bwmWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
       }
     } else {
       GlobalScope.launch {
-        val openedWindow = chrome.windows.create(CreateData(url = savedWindow.tabs.map { it.url }.toTypedArray())).await()
-        savedWindowRepository.bindSavedWindow(openedWindow.id!!, savedWindow)
+        val openedWindow = chrome.windows.create(CreateData(url = bwmWindow.tabs.map { it.url }.toTypedArray())).await()
+        bwmWindowRepository.bind(bwmWindowId = bwmWindow.id, systemWindowId = openedWindow.id!!)
+      }
+    }
+  }
+
+  private fun setupActionButton() {
+    // "action" is the extension's icon in the toolbar
+    chrome.action.onClicked.addListener {
+      GlobalScope.launch {
+        // If the popup window is already open, focus it, otherwise create it
+        if (chrome.windows.getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
+          chrome.windows.update(popupWindowId!!, UpdateInfo(focused = true))
+        } else {
+          val height = chrome.system.display.getInfo().await().firstOrNull { it.isPrimary }?.workArea?.height ?: 800
+          popupWindowId = chrome.windows.create(
+            CreateData(
+              url = arrayOf(chrome.runtime.getURL("popup.html")),
+              type = CreateType.popup,
+              focused = true,
+              top = 0,
+              left = 0,
+              width = 320,
+              height = height,
+            ),
+          ).await().id
+        }
       }
     }
   }

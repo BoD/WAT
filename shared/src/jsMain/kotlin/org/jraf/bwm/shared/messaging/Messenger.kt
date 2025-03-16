@@ -27,11 +27,10 @@
 
 package org.jraf.bwm.shared.messaging
 
-import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.bwm.shared.model.SavedWindow
+import org.jraf.bwm.shared.model.BwmWindow
 import kotlin.js.Promise
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -40,15 +39,26 @@ class Messenger {
     return chrome.runtime.sendMessage(Json.encodeToDynamic(message))
   }
 
-  suspend fun sendGetSavedWindowsMessage(): List<SavedWindow> {
-    val response = sendMessage(GetSavedWindowsMessage).await()
-    console.log("Got response %o", response)
-    val getSavedWindowsResponse = Json.decodeFromDynamic<GetSavedWindowsResponse>(response)
-    return getSavedWindowsResponse.savedWindows
+//  suspend fun sendGetSavedWindowsMessage(): List<BwmWindow> {
+//    val response = sendMessage(GetSavedWindowsMessage).await()
+//    console.log("Got response %o", response)
+//    val getSavedWindowsResponse = Json.decodeFromDynamic<PublishBwmWindows>(response)
+//    return getSavedWindowsResponse.bwmWindows
+//  }
+
+  fun sendRequestPublishBwmWindows() {
+    sendMessage(RequestPublishBwmWindows)
   }
 
-  fun sendOpenOrFocusSavedWindowMessage(savedWindowId: String) {
-    val message = OpenOrFocusSavedWindowMessage(savedWindowId)
+  fun sendPublishBwmWindows(bwmWindows: List<BwmWindow>) {
+    val message = PublishBwmWindows(bwmWindows)
+    console.log("Sending message %o", message)
+    sendMessage(message)
+    console.log("Message sent")
+  }
+
+  fun sendFocusOrCreateBwmWindowMessage(bwmWindow: BwmWindow) {
+    val message = FocusOrCreateBwmWindowMessage(bwmWindow)
     sendMessage(message)
   }
 }

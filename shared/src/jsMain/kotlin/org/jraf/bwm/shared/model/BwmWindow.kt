@@ -29,15 +29,36 @@ import kotlinx.serialization.Serializable
 
 // These are serializable because they're passed around via messages
 @Serializable
-data class SavedWindow(
+data class BwmWindow(
   val id: String,
-  val name: String,
-  val tabs: List<SavedTab>,
-)
+
+  /**
+   * If a window has a name it is saved.
+   */
+  val name: String?,
+
+  /**
+   * If a window has a system window id it is bound.
+   */
+  val systemWindowId: Int?,
+
+  val focused: Boolean,
+
+  val tabs: List<BwmTab>,
+) {
+  val isSaved: Boolean
+    get() = name != null
+
+  val isBound: Boolean
+    get() = systemWindowId != null
+
+  companion object
+}
 
 @Serializable
-data class SavedTab(
+data class BwmTab(
   val title: String,
   val url: String,
   val favIconUrl: String?,
+  val active: Boolean,
 )

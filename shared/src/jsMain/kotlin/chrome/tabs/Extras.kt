@@ -25,20 +25,3 @@
 
 package chrome.tabs
 
-import kotlinx.js.JsPlainObject
-
-@JsPlainObject
-external interface ActiveInfo {
-  val tabId: Number
-  val windowId: Number
-}
-
-@JsPlainObject
-external interface Tab {
-  val id: Number
-  val windowId: Number
-  val active: Boolean
-  val url: String
-  val title: String
-  val favIconUrl: String?
-}
