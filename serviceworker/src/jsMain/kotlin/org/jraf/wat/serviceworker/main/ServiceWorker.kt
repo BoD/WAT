@@ -52,6 +52,7 @@ import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.RequestPublishWatWindows
 import org.jraf.wat.shared.messaging.SaveWatWindowMessage
+import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatRepository
 import org.jraf.wat.shared.model.WatWindow
@@ -163,7 +164,13 @@ class ServiceWorker {
 
         is SaveWatWindowMessage -> {
           GlobalScope.launch {
-            watRepository.saveWindow(watWindowId = message.watWindow.id, name = message.windowName)
+            watRepository.saveWindow(watWindowId = message.watWindowId, name = message.windowName)
+          }
+        }
+
+        is UnsaveWatWindowMessage -> {
+          GlobalScope.launch {
+            watRepository.unsaveWindow(watWindowId = message.watWindowId)
           }
         }
 

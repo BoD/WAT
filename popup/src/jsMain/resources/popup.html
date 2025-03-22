@@ -3,10 +3,40 @@
   <title>BoD's Window Manager</title>
   <meta charset="UTF-8">
   <style>
+      :root {
+          --unboundColor: #444;
+          --boundColor: black;
+      }
+
       body {
           margin: 0;
           padding: 0;
       }
+
+      .windowName {
+          color: var(--unboundColor);
+      }
+
+      .windowName.bound {
+          color: var(--boundColor);
+      }
+
+      .windowName.focused {
+          font-weight: bold;
+      }
+
+      .tabName {
+          color: var(--unboundColor);
+      }
+
+      .tabName.bound {
+          color: var(--boundColor);
+      }
+
+      .tabName.active {
+          font-weight: bold;
+      }
+
   </style>
 </head>
 <body>

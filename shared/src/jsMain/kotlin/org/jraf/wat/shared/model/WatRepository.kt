@@ -133,6 +133,31 @@ class WatRepository {
         it
       }
     }
+    saveWindows()
+  }
+
+  /**
+   * Unsave a window.
+   * If the window isn't bound, it is also removed from the list.
+   */
+  suspend fun unsaveWindow(watWindowId: String) {
+    _watWindows.value = _watWindows.value.mapNotNull {
+      if (it.id == watWindowId) {
+        if (it.isBound) {
+          it.copy(
+            isSaved = false,
+          )
+        } else {
+          null
+        }
+      } else {
+        it
+      }
+    }
+    saveWindows()
+  }
+
+  private suspend fun saveWindows() {
     settingsRepository.saveWatWindows(
       _watWindows.value.filter { it.isSaved }.map { window ->
         window.copy(

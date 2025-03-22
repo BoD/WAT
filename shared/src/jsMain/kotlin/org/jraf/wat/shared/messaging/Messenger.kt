@@ -59,8 +59,13 @@ class Messenger {
     sendMessage(message)
   }
 
-  fun sendSaveWatWindowMessage(watWindow: WatWindow, windowName: String) {
-    val message = SaveWatWindowMessage(watWindow, windowName)
+  fun sendSaveWatWindowMessage(watWindowId: String, windowName: String) {
+    val message = SaveWatWindowMessage(watWindowId, windowName)
+    sendMessage(message)
+  }
+
+  fun sendUnsaveWatWindowMessage(watWindowId: String) {
+    val message = UnsaveWatWindowMessage(watWindowId)
     sendMessage(message)
   }
 }

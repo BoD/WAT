@@ -29,7 +29,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import chrome.runtime.onMessage
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.jetbrains.compose.web.dom.B
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
@@ -60,38 +59,67 @@ class Popup {
               }
             },
           ) {
-            if (watWindow.focused) {
-              B {
-                Text(watWindow.name)
-              }
-            } else {
-              Text(watWindow.name)
-            }
-            if (!watWindow.isSaved) {
-              Span(
-                attrs = {
-                  onClick {
-                    it.stopPropagation()
-                    val windowName: String? = js("""prompt("Window name:")""")
-                    if (!windowName.isNullOrBlank()) {
-                      messenger.sendSaveWatWindowMessage(watWindow = watWindow, windowName = windowName.trim())
+            Span(
+              attrs = {
+                classes(
+                  buildList {
+                    add("windowName")
+                    if (watWindow.focused) {
+                      add("focused")
                     }
-                  }
-                },
-              ) {
-                Text(" 💾")
+                    if (watWindow.isBound) {
+                      add("bound")
+                    }
+                  },
+                )
+              },
+            ) {
+              Text(watWindow.name)
+              if (watWindow.isSaved) {
+                Span(
+                  attrs = {
+                    onClick {
+                      it.stopPropagation()
+                      messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+                    }
+                  },
+                ) {
+                  Text(" 🗑️")
+                }
+              } else {
+                Span(
+                  attrs = {
+                    onClick {
+                      it.stopPropagation()
+                      val windowName: String? = js("""prompt("Window name:")""")
+                      if (!windowName.isNullOrBlank()) {
+                        messenger.sendSaveWatWindowMessage(watWindowId = watWindow.id, windowName = windowName.trim())
+                      }
+                    }
+                  },
+                ) {
+                  Text(" 💾")
+                }
               }
             }
             Ul {
               for (savedTab in watWindow.tabs) {
-                Li {
-                  if (watWindow.focused && savedTab.active) {
-                    B {
-                      Text(savedTab.title)
-                    }
-                  } else {
-                    Text(savedTab.title)
-                  }
+                Li(
+                  attrs = {
+                    classes(
+                      buildList {
+                        add("tabName")
+                        if (watWindow.focused && savedTab.active) {
+                          add("active")
+                        }
+                        if (watWindow.isBound) {
+                          add("bound")
+                        }
+                      },
+                    )
+                  },
+                ) {
+                  Text(savedTab.title.takeIf { it.isNotBlank() } ?: savedTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
                 }
               }
             }
