@@ -7,7 +7,7 @@
  *                              /___/
  * repository.
  *
- * Copyright (C) 2024-present Benoit 'BoD' Lubek (BoD@JRAF.org)
+ * Copyright (C) 2025-present Benoit 'BoD' Lubek (BoD@JRAF.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.popup
+package org.jraf.wat.popup
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import chrome.runtime.onMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.web.dom.B
 import org.jetbrains.compose.web.dom.Li
@@ -34,46 +35,46 @@ import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
-import org.jraf.bwm.shared.messaging.Messenger
-import org.jraf.bwm.shared.messaging.PublishBwmWindows
-import org.jraf.bwm.shared.messaging.asMessage
-import org.jraf.bwm.shared.model.BwmWindow
+import org.jraf.wat.shared.messaging.Messenger
+import org.jraf.wat.shared.messaging.PublishWatWindows
+import org.jraf.wat.shared.messaging.asMessage
+import org.jraf.wat.shared.model.WatWindow
 
 class Popup {
   private val messenger = Messenger()
 
-  private val bwmWindows: MutableStateFlow<List<BwmWindow>> = MutableStateFlow(emptyList())
+  private val watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
 
   fun start() {
     registerMessageListener()
-    messenger.sendRequestPublishBwmWindows()
+    messenger.sendRequestPublishWatWindows()
 
     renderComposable(rootElementId = "root") {
-      val bwmWindows: List<BwmWindow> by bwmWindows.collectAsState()
+      val watWindows: List<WatWindow> by watWindows.collectAsState()
       Ul {
-        for (bwmWindow in bwmWindows) {
+        for (watWindow in watWindows) {
           Li(
             attrs = {
               onClick {
-                messenger.sendFocusOrCreateBwmWindowMessage(bwmWindow)
+                messenger.sendFocusOrCreateWatWindowMessage(watWindow)
               }
             },
           ) {
-            if (bwmWindow.focused) {
+            if (watWindow.focused) {
               B {
-                Text(bwmWindow.name)
+                Text(watWindow.name)
               }
             } else {
-              Text(bwmWindow.name)
+              Text(watWindow.name)
             }
-            if (!bwmWindow.isSaved) {
+            if (!watWindow.isSaved) {
               Span(
                 attrs = {
                   onClick {
                     it.stopPropagation()
                     val windowName: String? = js("""prompt("Window name:")""")
                     if (!windowName.isNullOrBlank()) {
-                      messenger.sendSaveBwmWindowMessage(bwmWindow = bwmWindow, windowName = windowName.trim())
+                      messenger.sendSaveWatWindowMessage(watWindow = watWindow, windowName = windowName.trim())
                     }
                   }
                 },
@@ -82,9 +83,9 @@ class Popup {
               }
             }
             Ul {
-              for (savedTab in bwmWindow.tabs) {
+              for (savedTab in watWindow.tabs) {
                 Li {
-                  if (bwmWindow.focused && savedTab.active) {
+                  if (watWindow.focused && savedTab.active) {
                     B {
                       Text(savedTab.title)
                     }
@@ -101,10 +102,10 @@ class Popup {
   }
 
   private fun registerMessageListener() {
-    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
+    onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
-        is PublishBwmWindows -> {
-          bwmWindows.value = message.bwmWindows
+        is PublishWatWindows -> {
+          watWindows.value = message.watWindows
         }
 
         else -> {

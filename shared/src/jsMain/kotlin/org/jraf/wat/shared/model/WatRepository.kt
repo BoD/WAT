@@ -23,7 +23,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.shared.model
+package org.jraf.wat.shared.model
 
 import chrome.windows.Window
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,22 +33,22 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class BwmWindowRepository {
+class WatRepository {
   private val savedWindows = listOf(
-    BwmWindow(
+    WatWindow(
       id = Uuid.random().toHexString(),
       name = "Dev",
       isSaved = true,
       systemWindowId = null,
       focused = false,
       tabs = listOf(
-        BwmTab(
+        WatTab(
           title = "Google",
           url = "https://www.google.com",
           favIconUrl = "https://www.google.com/favicon.ico",
           active = false,
         ),
-        BwmTab(
+        WatTab(
           title = "GitHub",
           url = "https://www.github.com",
           favIconUrl = "https://www.github.com/favicon.ico",
@@ -56,20 +56,20 @@ class BwmWindowRepository {
         ),
       ),
     ),
-    BwmWindow(
+    WatWindow(
       id = Uuid.random().toHexString(),
       name = "Personal",
       isSaved = true,
       systemWindowId = null,
       focused = false,
       tabs = listOf(
-        BwmTab(
+        WatTab(
           title = "Reddit",
           url = "https://www.reddit.com",
           favIconUrl = "https://www.reddit.com/favicon.ico",
           active = false,
         ),
-        BwmTab(
+        WatTab(
           title = "JRAF",
           url = "https://JRAF.org",
           favIconUrl = "https://JRAF.org/favicon.ico",
@@ -79,24 +79,24 @@ class BwmWindowRepository {
     ),
   )
 
-  private val _bwmWindows: MutableStateFlow<List<BwmWindow>> = MutableStateFlow(savedWindows)
-  val bwmWindows: StateFlow<List<BwmWindow>> = _bwmWindows
+  private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(savedWindows)
+  val watWindows: StateFlow<List<WatWindow>> = _watWindows
 
-  fun bind(bwmWindowId: String, systemWindowId: Int) {
-    val bwmWindow = getWindow(bwmWindowId)
-    check(bwmWindow != null) { "BwmWindow $bwmWindowId not found" }
-    check(!bwmWindow.isBound) { "BwmWindow $bwmWindowId is already bound to a system window" }
-    _bwmWindows.value = _bwmWindows.value.map { bwmWindow ->
-      if (bwmWindow.id == bwmWindowId) {
-        bwmWindow.copy(systemWindowId = systemWindowId)
+  fun bind(watWindowId: String, systemWindowId: Int) {
+    val watWindow = getWindow(watWindowId)
+    check(watWindow != null) { "WatWindow $watWindowId not found" }
+    check(!watWindow.isBound) { "WatWindow $watWindowId is already bound to a system window" }
+    _watWindows.value = _watWindows.value.map { watWindow ->
+      if (watWindow.id == watWindowId) {
+        watWindow.copy(systemWindowId = systemWindowId)
       } else {
-        bwmWindow
+        watWindow
       }
     }
   }
 
   fun unbind(systemWindowId: Int) {
-    _bwmWindows.value = _bwmWindows.value.mapNotNull {
+    _watWindows.value = _watWindows.value.mapNotNull {
       if (it.systemWindowId == systemWindowId) {
         if (it.isSaved) {
           it.copy(systemWindowId = null)
@@ -110,13 +110,13 @@ class BwmWindowRepository {
   }
 
   fun addSystemWindows(systemWindows: List<Window>) {
-    _bwmWindows.value = _bwmWindows.value + systemWindows
+    _watWindows.value = _watWindows.value + systemWindows
       // Ignore windows that are already bound
       .filterNot {
-        _bwmWindows.value.any { bwmWindow -> bwmWindow.systemWindowId == it.id }
+        _watWindows.value.any { watWindow -> watWindow.systemWindowId == it.id }
       }
       .map { systemWindow ->
-        BwmWindow(
+        WatWindow(
           id = Uuid.random().toHexString(),
           name = Date().toLocaleString(
             options = dateLocaleOptions {
@@ -131,7 +131,7 @@ class BwmWindowRepository {
           systemWindowId = systemWindow.id!!,
           focused = systemWindow.focused,
           tabs = systemWindow.tabs?.map { systemTab ->
-            BwmTab(
+            WatTab(
               title = systemTab.title,
               url = systemTab.url,
               favIconUrl = systemTab.favIconUrl,
@@ -146,9 +146,9 @@ class BwmWindowRepository {
     addSystemWindows(listOf(systemWindow))
   }
 
-  fun saveWindow(bwmWindowId: String, name: String) {
-    _bwmWindows.value = _bwmWindows.value.map {
-      if (it.id == bwmWindowId) {
+  fun saveWindow(watWindowId: String, name: String) {
+    _watWindows.value = _watWindows.value.map {
+      if (it.id == watWindowId) {
         it.copy(
           name = name,
           isSaved = true,
@@ -160,16 +160,16 @@ class BwmWindowRepository {
     }
   }
 
-  private fun getWindow(bwmWindowId: String): BwmWindow? = _bwmWindows.value.firstOrNull { it.id == bwmWindowId }
+  private fun getWindow(watWindowId: String): WatWindow? = _watWindows.value.firstOrNull { it.id == watWindowId }
 
-  fun updateBwmWindows(systemWindows: List<Window>) {
-    _bwmWindows.value = _bwmWindows.value.map { bwmWindow ->
-      val systemWindow = systemWindows.firstOrNull { it.id == bwmWindow.systemWindowId }
+  fun updateWatWindows(systemWindows: List<Window>) {
+    _watWindows.value = _watWindows.value.map { watWindow ->
+      val systemWindow = systemWindows.firstOrNull { it.id == watWindow.systemWindowId }
       if (systemWindow != null) {
-        bwmWindow.copy(
+        watWindow.copy(
           focused = systemWindow.focused,
           tabs = systemWindow.tabs?.map { systemTab ->
-            BwmTab(
+            WatTab(
               title = systemTab.title,
               url = systemTab.url,
               favIconUrl = systemTab.favIconUrl,
@@ -178,17 +178,17 @@ class BwmWindowRepository {
           } ?: emptyList(),
         )
       } else {
-        bwmWindow
+        watWindow
       }
     }
   }
 
   fun focusSystemWindow(systemWindowId: Int) {
-    _bwmWindows.value = _bwmWindows.value.map { bwmWindow ->
-      if (bwmWindow.systemWindowId == systemWindowId) {
-        bwmWindow.copy(focused = true)
+    _watWindows.value = _watWindows.value.map { watWindow ->
+      if (watWindow.systemWindowId == systemWindowId) {
+        watWindow.copy(focused = true)
       } else {
-        bwmWindow.copy(focused = false)
+        watWindow.copy(focused = false)
       }
     }
   }

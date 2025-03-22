@@ -23,7 +23,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.popup
+package org.jraf.wat.popup
 
 // This is executed every time popup.html is opened.
 fun main() {

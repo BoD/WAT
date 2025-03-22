@@ -16,7 +16,7 @@ plugins {
   id("de.fayard.refreshVersions") version "0.60.5"
 }
 
-rootProject.name = "bwm"
+rootProject.name = "wat"
 
 include(
   "shared",

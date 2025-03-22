@@ -7,7 +7,7 @@
  *                              /___/
  * repository.
  *
- * Copyright (C) 2024-present Benoit 'BoD' Lubek (BoD@JRAF.org)
+ * Copyright (C) 2025-present Benoit 'BoD' Lubek (BoD@JRAF.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.serviceworker.main
+package org.jraf.wat.shared.model
 
-// This is executed once when the extension starts
-fun main() {
-  console.log("Service Worker started")
-  ServiceWorker().start()
+import kotlinx.serialization.Serializable
+
+// These are serializable because they're passed around via messages
+@Serializable
+data class WatWindow(
+  val id: String,
+
+  val name: String,
+
+  val isSaved: Boolean,
+
+  /**
+   * If a window has a system window id it is bound.
+   */
+  val systemWindowId: Int?,
+
+  val focused: Boolean,
+
+  val tabs: List<WatTab>,
+) {
+  val isBound: Boolean
+    get() = systemWindowId != null
+
+  companion object
 }
+
+@Serializable
+data class WatTab(
+  val title: String,
+  val url: String,
+  val favIconUrl: String?,
+  val active: Boolean,
+)

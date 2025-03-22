@@ -7,7 +7,7 @@
  *                              /___/
  * repository.
  *
- * Copyright (C) 2025-present Benoit 'BoD' Lubek (BoD@JRAF.org)
+ * Copyright (C) 2024-present Benoit 'BoD' Lubek (BoD@JRAF.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,22 +23,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.shared.messaging
+package org.jraf.wat.serviceworker.main
 
-import kotlinx.serialization.Serializable
-import org.jraf.bwm.shared.model.BwmWindow
-
-@Serializable
-sealed class Message
-
-@Serializable
-data object RequestPublishBwmWindows : Message()
-
-@Serializable
-class PublishBwmWindows(val bwmWindows: List<BwmWindow>) : Message()
-
-@Serializable
-class FocusOrCreateBwmWindowMessage(val bwmWindow: BwmWindow) : Message()
-
-@Serializable
-class SaveBwmWindowMessage(val bwmWindow: BwmWindow, val windowName: String) : Message()
+// This is executed once when the extension starts
+fun main() {
+  console.log("Service Worker started")
+  ServiceWorker().start()
+}

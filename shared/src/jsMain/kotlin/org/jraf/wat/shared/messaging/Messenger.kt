@@ -25,12 +25,12 @@
 
 @file:OptIn(ExperimentalUuidApi::class)
 
-package org.jraf.bwm.shared.messaging
+package org.jraf.wat.shared.messaging
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.bwm.shared.model.BwmWindow
+import org.jraf.wat.shared.model.WatWindow
 import kotlin.js.Promise
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -39,28 +39,28 @@ class Messenger {
     return chrome.runtime.sendMessage(Json.encodeToDynamic(message))
   }
 
-//  suspend fun sendGetSavedWindowsMessage(): List<BwmWindow> {
+//  suspend fun sendGetSavedWindowsMessage(): List<WatWindow> {
 //    val response = sendMessage(GetSavedWindowsMessage).await()
-//    val getSavedWindowsResponse = Json.decodeFromDynamic<PublishBwmWindows>(response)
-//    return getSavedWindowsResponse.bwmWindows
+//    val getSavedWindowsResponse = Json.decodeFromDynamic<PublishWatWindows>(response)
+//    return getSavedWindowsResponse.watWindows
 //  }
 
-  fun sendRequestPublishBwmWindows() {
-    sendMessage(RequestPublishBwmWindows)
+  fun sendRequestPublishWatWindows() {
+    sendMessage(RequestPublishWatWindows)
   }
 
-  fun sendPublishBwmWindows(bwmWindows: List<BwmWindow>) {
-    val message = PublishBwmWindows(bwmWindows)
+  fun sendPublishWatWindows(watWindows: List<WatWindow>) {
+    val message = PublishWatWindows(watWindows)
     sendMessage(message)
   }
 
-  fun sendFocusOrCreateBwmWindowMessage(bwmWindow: BwmWindow) {
-    val message = FocusOrCreateBwmWindowMessage(bwmWindow)
+  fun sendFocusOrCreateWatWindowMessage(watWindow: WatWindow) {
+    val message = FocusOrCreateWatWindowMessage(watWindow)
     sendMessage(message)
   }
 
-  fun sendSaveBwmWindowMessage(bwmWindow: BwmWindow, windowName: String) {
-    val message = SaveBwmWindowMessage(bwmWindow, windowName)
+  fun sendSaveWatWindowMessage(watWindow: WatWindow, windowName: String) {
+    val message = SaveWatWindowMessage(watWindow, windowName)
     sendMessage(message)
   }
 }

@@ -42,4 +42,4 @@ tasks.register<Zip>("dist") {
 
 // Run `./gradlew refreshVersions` to update dependencies
 // Run `./gradlew devDist` for tests (result is in build/devDist)
-// Run `./gradlew dist` to release (result is in build/dist/bwm-x.y.z.zip)
+// Run `./gradlew dist` to release (result is in build/dist/wat-x.y.z.zip)

@@ -13,10 +13,10 @@ val generateVersionKtTask = tasks.register("generateVersionKt") {
   val outputDir = layout.buildDirectory.dir("generated/source/kotlin").get().asFile
   outputs.dir(outputDir)
   doFirst {
-    val outputWithPackageDir = File(outputDir, "org/jraf/bwm/shared").apply { mkdirs() }
+    val outputWithPackageDir = File(outputDir, "org/jraf/wat/shared").apply { mkdirs() }
     File(outputWithPackageDir, "Version.kt").writeText(
       """
-        package org.jraf.bwm.shared
+        package org.jraf.wat.shared
         const val VERSION = "v${rootProject.version}"
       """.trimIndent()
     )

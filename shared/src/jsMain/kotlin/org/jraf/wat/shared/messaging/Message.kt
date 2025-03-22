@@ -23,38 +23,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.bwm.shared.model
+package org.jraf.wat.shared.messaging
 
 import kotlinx.serialization.Serializable
-
-// These are serializable because they're passed around via messages
-@Serializable
-data class BwmWindow(
-  val id: String,
-
-  val name: String,
-
-  val isSaved: Boolean,
-
-  /**
-   * If a window has a system window id it is bound.
-   */
-  val systemWindowId: Int?,
-
-  val focused: Boolean,
-
-  val tabs: List<BwmTab>,
-) {
-  val isBound: Boolean
-    get() = systemWindowId != null
-
-  companion object
-}
+import org.jraf.wat.shared.model.WatWindow
 
 @Serializable
-data class BwmTab(
-  val title: String,
-  val url: String,
-  val favIconUrl: String?,
-  val active: Boolean,
-)
+sealed class Message
+
+@Serializable
+data object RequestPublishWatWindows : Message()
+
+@Serializable
+class PublishWatWindows(val watWindows: List<WatWindow>) : Message()
+
+@Serializable
+class FocusOrCreateWatWindowMessage(val watWindow: WatWindow) : Message()
+
+@Serializable
+class SaveWatWindowMessage(val watWindow: WatWindow, val windowName: String) : Message()
