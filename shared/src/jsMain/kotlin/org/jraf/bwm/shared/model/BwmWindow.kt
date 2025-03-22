@@ -32,10 +32,9 @@ import kotlinx.serialization.Serializable
 data class BwmWindow(
   val id: String,
 
-  /**
-   * If a window has a name it is saved.
-   */
-  val name: String?,
+  val name: String,
+
+  val isSaved: Boolean,
 
   /**
    * If a window has a system window id it is bound.
@@ -46,9 +45,6 @@ data class BwmWindow(
 
   val tabs: List<BwmTab>,
 ) {
-  val isSaved: Boolean
-    get() = name != null
-
   val isBound: Boolean
     get() = systemWindowId != null
 

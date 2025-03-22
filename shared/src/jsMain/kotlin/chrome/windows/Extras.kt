@@ -66,8 +66,3 @@ interface CreateType {
 external interface UpdateInfo {
   val focused: Boolean?
 }
-
-@JsPlainObject
-external interface OnCreatedFilters {
-  val windowTypes: Array</*WindowType*/String>
-}

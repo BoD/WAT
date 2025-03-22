@@ -39,7 +39,7 @@ external interface OnFocusChanged {
 external val onCreated: OnCreated
 
 external interface OnCreated {
-  fun addListener(callback: (window: Window) -> Unit, filters: OnCreatedFilters)
+  fun addListener(callback: (window: Window) -> Unit)
 }
 
 

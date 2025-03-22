@@ -14,12 +14,20 @@
     "system.display"
   ],
   "background": {
-    "service_worker": "serviceworker.js"
+    "service_worker": "serviceworker.js",
+    "scripts": [
+      "serviceworker.js"
+    ]
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; script-src-elem 'self' 'unsafe-inline'"
   },
   "action": {
     "default_title": "BoD's Window Manager"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bwm@jraf.org"
+    }
   }
 }

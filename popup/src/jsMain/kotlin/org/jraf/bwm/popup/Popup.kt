@@ -61,10 +61,10 @@ class Popup {
           ) {
             if (bwmWindow.focused) {
               B {
-                Text(bwmWindow.name ?: "Unsaved")
+                Text(bwmWindow.name)
               }
             } else {
-              Text(bwmWindow.name ?: "Unsaved")
+              Text(bwmWindow.name)
             }
             if (!bwmWindow.isSaved) {
               Span(

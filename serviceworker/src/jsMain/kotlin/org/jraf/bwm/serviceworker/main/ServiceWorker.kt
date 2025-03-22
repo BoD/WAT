@@ -27,7 +27,6 @@ package org.jraf.bwm.serviceworker.main
 
 import chrome.windows.CreateData
 import chrome.windows.CreateType
-import chrome.windows.OnCreatedFilters
 import chrome.windows.QueryOptions
 import chrome.windows.UpdateInfo
 import chrome.windows.WindowType
@@ -81,9 +80,16 @@ class ServiceWorker {
   private fun observeWindows() {
     chrome.windows.onCreated.addListener(
       callback = { window ->
-        bwmWindowRepository.addSystemWindow(window)
+        // Only consider normal windows
+        if (window.type != WindowType.normal) return@addListener
+
+        if (bindNextCreatedSystemWindowToBwmWindow != null) {
+          bwmWindowRepository.bind(bwmWindowId = bindNextCreatedSystemWindowToBwmWindow!!, systemWindowId = window.id!!)
+          bindNextCreatedSystemWindowToBwmWindow = null
+        } else {
+          bwmWindowRepository.addSystemWindow(window)
+        }
       },
-      filters = OnCreatedFilters(windowTypes = arrayOf(WindowType.normal)),
     )
     chrome.windows.onRemoved.addListener { systemWindowId ->
       bwmWindowRepository.unbind(systemWindowId)
@@ -154,16 +160,16 @@ class ServiceWorker {
     }
   }
 
+  private var bindNextCreatedSystemWindowToBwmWindow: String? = null
+
   private fun focusOrCreateBwmWindow(bwmWindow: BwmWindow) {
     if (bwmWindow.systemWindowId != null) {
       GlobalScope.launch {
         chrome.windows.update(bwmWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
       }
     } else {
-      GlobalScope.launch {
-        val openedWindow = chrome.windows.create(CreateData(url = bwmWindow.tabs.map { it.url }.toTypedArray())).await()
-        bwmWindowRepository.bind(bwmWindowId = bwmWindow.id, systemWindowId = openedWindow.id!!)
-      }
+      bindNextCreatedSystemWindowToBwmWindow = bwmWindow.id
+      chrome.windows.create(CreateData(url = bwmWindow.tabs.map { it.url }.toTypedArray()))
     }
   }
 
@@ -175,7 +181,9 @@ class ServiceWorker {
         if (chrome.windows.getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
           chrome.windows.update(popupWindowId!!, UpdateInfo(focused = true))
         } else {
-          val height = chrome.system.display.getInfo().await().firstOrNull { it.isPrimary }?.workArea?.height ?: 800
+          // TODO
+//          val height = chrome.system.display.getInfo().await().firstOrNull { it.isPrimary }?.workArea?.height ?: 800
+          val height = 800
           popupWindowId = chrome.windows.create(
             CreateData(
               url = arrayOf(chrome.runtime.getURL("popup.html")),

@@ -28,6 +28,7 @@ package org.jraf.bwm.shared.model
 import chrome.windows.Window
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -37,6 +38,7 @@ class BwmWindowRepository {
     BwmWindow(
       id = Uuid.random().toHexString(),
       name = "Dev",
+      isSaved = true,
       systemWindowId = null,
       focused = false,
       tabs = listOf(
@@ -57,6 +59,7 @@ class BwmWindowRepository {
     BwmWindow(
       id = Uuid.random().toHexString(),
       name = "Personal",
+      isSaved = true,
       systemWindowId = null,
       focused = false,
       tabs = listOf(
@@ -115,7 +118,16 @@ class BwmWindowRepository {
       .map { systemWindow ->
         BwmWindow(
           id = Uuid.random().toHexString(),
-          name = null,
+          name = Date().toLocaleString(
+            options = dateLocaleOptions {
+              year = "numeric"
+              month = "short"
+              day = "2-digit"
+              hour = "2-digit"
+              minute = "2-digit"
+            },
+          ),
+          isSaved = false,
           systemWindowId = systemWindow.id!!,
           focused = systemWindow.focused,
           tabs = systemWindow.tabs?.map { systemTab ->
@@ -137,7 +149,10 @@ class BwmWindowRepository {
   fun saveWindow(bwmWindowId: String, name: String) {
     _bwmWindows.value = _bwmWindows.value.map {
       if (it.id == bwmWindowId) {
-        it.copy(name = name)
+        it.copy(
+          name = name,
+          isSaved = true,
+        )
         // TODO: save to storage
       } else {
         it
