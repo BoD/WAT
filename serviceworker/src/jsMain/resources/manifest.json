@@ -11,7 +11,8 @@
   },
   "permissions": [
     "tabs",
-    "system.display"
+    "system.display",
+    "storage"
   ],
   "background": {
     "service_worker": "serviceworker.js",

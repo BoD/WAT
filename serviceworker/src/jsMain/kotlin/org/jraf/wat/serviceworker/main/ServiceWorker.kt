@@ -162,7 +162,9 @@ class ServiceWorker {
         }
 
         is SaveWatWindowMessage -> {
-          watRepository.saveWindow(watWindowId = message.watWindow.id, name = message.windowName)
+          GlobalScope.launch {
+            watRepository.saveWindow(watWindowId = message.watWindow.id, name = message.windowName)
+          }
         }
 
         else -> {

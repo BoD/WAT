@@ -24,7 +24,7 @@ tasks.register<Sync>("devDist") {
   into(layout.buildDirectory.dir("devDist"))
 }
 
-tasks.register<Zip>("dist") {
+tasks.register<Sync>("prodDist") {
   listOf(
     ":serviceworker",
     ":popup",
@@ -36,10 +36,35 @@ tasks.register<Zip>("dist") {
       dependsOn("${it.name}:jsBrowserDistribution")
       from(it.layout.buildDirectory.dir("dist/js/productionExecutable"))
     }
-  destinationDirectory.set(layout.buildDirectory.dir("dist"))
+  into(layout.buildDirectory.dir("prodDist"))
 }
 
+tasks.register<Zip>("prodDistZip") {
+  listOf(
+    ":serviceworker",
+    ":popup",
+  )
+    .map {
+      project(it)
+    }
+    .forEach {
+      dependsOn("${it.name}:jsBrowserDistribution")
+      from(it.layout.buildDirectory.dir("dist/js/productionExecutable"))
+    }
+  destinationDirectory.set(layout.buildDirectory.dir("prodDist"))
+}
 
 // Run `./gradlew refreshVersions` to update dependencies
-// Run `./gradlew devDist` for tests (result is in build/devDist)
-// Run `./gradlew dist` to release (result is in build/dist/wat-x.y.z.zip)
+
+// For dev:
+// Run `./gradlew devDist`
+// Result is in build/devDist
+
+// For release (Firefox):
+// Run `./gradlew prodDist`
+// Result is in build/prodDist
+// Then run `web-ext sign --channel unlisted --api-key 'user:xyz' --api-secret 'xyz'
+
+// For release (Chrome):
+// Run `./gradlew prodDistZip`
+// Result is in build/prodDist/wat-x.y.z.zip

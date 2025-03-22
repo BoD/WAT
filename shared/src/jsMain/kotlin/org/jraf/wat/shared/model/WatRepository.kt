@@ -26,61 +26,29 @@
 package org.jraf.wat.shared.model
 
 import chrome.windows.Window
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import org.jraf.wat.shared.settings.SettingsRepository
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class WatRepository {
-  private val savedWindows = listOf(
-    WatWindow(
-      id = Uuid.random().toHexString(),
-      name = "Dev",
-      isSaved = true,
-      systemWindowId = null,
-      focused = false,
-      tabs = listOf(
-        WatTab(
-          title = "Google",
-          url = "https://www.google.com",
-          favIconUrl = "https://www.google.com/favicon.ico",
-          active = false,
-        ),
-        WatTab(
-          title = "GitHub",
-          url = "https://www.github.com",
-          favIconUrl = "https://www.github.com/favicon.ico",
-          active = false,
-        ),
-      ),
-    ),
-    WatWindow(
-      id = Uuid.random().toHexString(),
-      name = "Personal",
-      isSaved = true,
-      systemWindowId = null,
-      focused = false,
-      tabs = listOf(
-        WatTab(
-          title = "Reddit",
-          url = "https://www.reddit.com",
-          favIconUrl = "https://www.reddit.com/favicon.ico",
-          active = false,
-        ),
-        WatTab(
-          title = "JRAF",
-          url = "https://JRAF.org",
-          favIconUrl = "https://JRAF.org/favicon.ico",
-          active = false,
-        ),
-      ),
-    ),
-  )
+  private val settingsRepository = SettingsRepository()
 
-  private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(savedWindows)
+  private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
   val watWindows: StateFlow<List<WatWindow>> = _watWindows
+
+  init {
+    GlobalScope.launch {
+      settingsRepository.settings.collect { settings ->
+        addSavedWatWindows(settings.savedWatWindows)
+      }
+    }
+  }
 
   fun bind(watWindowId: String, systemWindowId: Int) {
     val watWindow = getWindow(watWindowId)
@@ -107,6 +75,14 @@ class WatRepository {
         it
       }
     }
+  }
+
+  private fun addSavedWatWindows(savedWatWindows: List<WatWindow>) {
+    _watWindows.value = savedWatWindows
+      // Don't add windows twice
+      .filterNot {
+        _watWindows.value.any { watWindow -> watWindow.id == it.id }
+      } + _watWindows.value
   }
 
   fun addSystemWindows(systemWindows: List<Window>) {
@@ -146,18 +122,30 @@ class WatRepository {
     addSystemWindows(listOf(systemWindow))
   }
 
-  fun saveWindow(watWindowId: String, name: String) {
+  suspend fun saveWindow(watWindowId: String, name: String) {
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {
         it.copy(
           name = name,
           isSaved = true,
         )
-        // TODO: save to storage
       } else {
         it
       }
     }
+    settingsRepository.saveWatWindows(
+      _watWindows.value.filter { it.isSaved }.map { window ->
+        window.copy(
+          systemWindowId = null,
+          focused = false,
+          tabs = window.tabs.map { tab ->
+            tab.copy(
+              active = false,
+            )
+          },
+        )
+      },
+    )
   }
 
   private fun getWindow(watWindowId: String): WatWindow? = _watWindows.value.firstOrNull { it.id == watWindowId }
