@@ -5,10 +5,10 @@
   <meta charset="UTF-8">
   <style>
     :root {
-      --unboundColor: #666;
-      --boundColor: black;
-      --focusedWindowBgColor: #DDF;
-      --selectedTabBgColor: #DDF;
+      --boundColor: white;
+      --unboundColor: #999;
+      --focusedWindowBgColor: #004;
+      --selectedTabBgColor: #004;
       --smallWidth: .3em;
       --mediumWidth: 1.6em;
     }
@@ -18,6 +18,8 @@
       padding: 0;
       font-size: .8rem;
       font-family: sans-serif;
+      background-color: black;
+      user-select: none;
     }
 
     li {
@@ -25,37 +27,62 @@
       overflow: hidden;
       text-overflow: ellipsis;
       height: 1rem;
+      display: flex;
+      align-items: center;
     }
 
-    .windowName {
+    .window {
       color: var(--unboundColor);
       cursor: pointer;
       list-style-type: none;
       padding: var(--smallWidth);
       margin: var(--smallWidth);
+      border-radius: var(--smallWidth);
     }
 
-    .windowName.bound {
+    .window:hover .actionIcon {
+      display: inline;
+    }
+
+    .window.bound {
       color: var(--boundColor);
     }
 
-    .windowName.focused {
+    .window.focused {
       background-color: var(--focusedWindowBgColor);
     }
 
-    .tabName {
+    .window .name {
+      flex-grow: 1;
+    }
+
+    .window .treeExpander {
+      padding-right: var(--smallWidth);
+    }
+
+    .window .actionIcon {
+      padding-left: calc(var(--smallWidth) * 3);
+      display: none;
+    }
+
+    .window .actionIcon:hover {
+      scale: 1.2;
+    }
+
+    .tab {
       color: var(--unboundColor);
       cursor: pointer;
       list-style-type: none;
       padding: var(--smallWidth) var(--smallWidth) var(--smallWidth) var(--mediumWidth);
       margin: var(--smallWidth);
+      border-radius: var(--smallWidth);
     }
 
-    .tabName.bound {
+    .tab.bound {
       color: var(--boundColor);
     }
 
-    .tabName.active {
+    .tab.active {
       background-color: var(--selectedTabBgColor);
     }
   </style>

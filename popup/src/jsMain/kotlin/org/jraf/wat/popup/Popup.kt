@@ -27,12 +27,17 @@ package org.jraf.wat.popup
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import chrome.runtime.onMessage
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.jetbrains.compose.web.attributes.autoFocus
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
+import org.jetbrains.compose.web.dom.TextInput
 import org.jetbrains.compose.web.renderComposable
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindows
@@ -51,12 +56,15 @@ class Popup {
 
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
+      var watWindowIdBeingEdited: String? by remember { mutableStateOf(null) }
+      var watWindowNameBeingEdited: String? by remember { mutableStateOf(null) }
+
       for (watWindow in watWindows) {
         Li(
           attrs = {
             classes(
               buildList {
-                add("windowName")
+                add("window")
                 if (watWindow.focused) {
                   add("focused")
                 }
@@ -65,15 +73,12 @@ class Popup {
                 }
               },
             )
-            onClick {
-              messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
-            }
           },
         ) {
           Span(
             attrs = {
+              classes("treeExpander")
               onClick {
-                it.stopPropagation()
                 messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
               }
             },
@@ -86,26 +91,87 @@ class Popup {
               },
             )
           }
-          Text(watWindow.name)
-          if (watWindow.isSaved) {
+          if (watWindow.id == watWindowIdBeingEdited) {
+            TextInput(
+              value = watWindowNameBeingEdited!!,
+            ) {
+              classes("name")
+              autoFocus()
+              onInput { watWindowNameBeingEdited = it.value }
+              onKeyUp {
+                when (it.key) {
+                  "Enter" -> {
+                    messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  }
+
+                  "Escape" -> {
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  }
+                }
+              }
+            }
+
+          } else {
             Span(
               attrs = {
+                classes("name")
                 onClick {
-                  it.stopPropagation()
-                  messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
                 }
               },
             ) {
-              Text(" 🗑️")
+              Text(watWindow.name)
+              if (!watWindow.isSaved) {
+                Text(" *")
+              }
+            }
+          }
+          if (watWindow.isSaved) {
+            Span(
+              attrs = {
+                classes("actionIcon")
+                onClick {
+                  if (watWindowIdBeingEdited != null) {
+                    messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  } else {
+                    watWindowIdBeingEdited = watWindow.id
+                    watWindowNameBeingEdited = watWindow.name
+                  }
+                }
+              },
+            ) {
+              Text(" ✏️")
+            }
+            // Only show the unsave icon if the window is bound, because otherwise it's dangerous
+            if (watWindow.isBound) {
+              Span(
+                attrs = {
+                  classes("actionIcon")
+                  onClick {
+                    messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+                  }
+                },
+              ) {
+                Text(" 🗑")
+              }
             }
           } else {
             Span(
               attrs = {
+                classes("actionIcon")
                 onClick {
-                  it.stopPropagation()
-                  val windowName: String? = js("""prompt("Window name:")""")
-                  if (!windowName.isNullOrBlank()) {
-                    messenger.sendSaveWatWindowMessage(watWindowId = watWindow.id, windowName = windowName.trim())
+                  if (watWindowIdBeingEdited != null) {
+                    messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  } else {
+                    watWindowIdBeingEdited = watWindow.id
+                    watWindowNameBeingEdited = watWindow.name
                   }
                 }
               },
@@ -121,7 +187,7 @@ class Popup {
               attrs = {
                 classes(
                   buildList {
-                    add("tabName")
+                    add("tab")
                     if (watWindow.focused && watTab.active) {
                       add("active")
                     }
