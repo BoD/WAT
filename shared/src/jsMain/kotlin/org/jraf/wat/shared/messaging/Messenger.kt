@@ -68,6 +68,11 @@ class Messenger {
     val message = UnsaveWatWindowMessage(watWindowId)
     sendMessage(message)
   }
+
+  fun sendSetTreeExpandedMessage(watWindowId: String, treeExpanded: Boolean) {
+    val message = SetTreeExpandedMessage(watWindowId, treeExpanded)
+    sendMessage(message)
+  }
 }
 
 fun Any.asMessage(): Message {

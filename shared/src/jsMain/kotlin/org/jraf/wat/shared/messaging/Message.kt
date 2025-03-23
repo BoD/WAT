@@ -45,3 +45,6 @@ class SaveWatWindowMessage(val watWindowId: String, val windowName: String) : Me
 
 @Serializable
 class UnsaveWatWindowMessage(val watWindowId: String) : Message()
+
+@Serializable
+class SetTreeExpandedMessage(val watWindowId: String, val treeExpanded: Boolean) : Message()

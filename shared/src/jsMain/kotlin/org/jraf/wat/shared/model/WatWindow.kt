@@ -39,8 +39,8 @@ data class WatWindow(
   val left: Int,
   val width: Int,
   val height: Int,
-
   val tabs: List<WatTab>,
+  val treeExpanded: Boolean,
 ) {
   val isBound: Boolean
     get() = systemWindowId != null

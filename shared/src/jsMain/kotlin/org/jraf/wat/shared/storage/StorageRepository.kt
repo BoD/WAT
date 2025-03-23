@@ -95,6 +95,7 @@ private fun StorageWindow.toWatWindow(): WatWindow {
     isSaved = true,
     focused = false,
     tabs = tabs.map { it.toWatTab() },
+    treeExpanded = treeExpanded,
   )
 }
 
@@ -117,6 +118,7 @@ private fun WatWindow.toStorageWindow(): StorageWindow {
     width = width,
     height = height,
     tabs = tabs.map { it.toStorageTab() },
+    treeExpanded = treeExpanded,
   )
 }
 

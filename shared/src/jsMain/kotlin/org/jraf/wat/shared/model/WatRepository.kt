@@ -130,6 +130,7 @@ class WatRepository {
               active = systemTab.active,
             )
           } ?: emptyList(),
+          treeExpanded = true,
         )
       }
   }
@@ -236,4 +237,15 @@ class WatRepository {
   fun getWatWindow(watWindowId: String): WatWindow? = watWindows.value.firstOrNull { it.id == watWindowId }
 
   fun getWatWindowBySystemId(systemWindowId: Int): WatWindow? = watWindows.value.firstOrNull { it.systemWindowId == systemWindowId }
+
+  suspend fun setTreeExpanded(watWindowId: String, treeExpanded: Boolean) {
+    _watWindows.value = _watWindows.value.map {
+      if (it.id == watWindowId) {
+        it.copy(treeExpanded = treeExpanded)
+      } else {
+        it
+      }
+    }
+    saveWindows()
+  }
 }

@@ -70,6 +70,29 @@ class Popup {
             }
           },
         ) {
+          if (watWindow.treeExpanded) {
+            Span(
+              attrs = {
+                onClick {
+                  it.stopPropagation()
+                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = false)
+                }
+              },
+            ) {
+              Text("▽ ")
+            }
+          } else {
+            Span(
+              attrs = {
+                onClick {
+                  it.stopPropagation()
+                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = true)
+                }
+              },
+            ) {
+              Text("▷ ")
+            }
+          }
           Text(watWindow.name)
           if (watWindow.isSaved) {
             Span(
@@ -98,26 +121,29 @@ class Popup {
             }
           }
         }
-        for ((i, watTab) in watWindow.tabs.withIndex()) {
-          Li(
-            attrs = {
-              classes(
-                buildList {
-                  add("tabName")
-                  if (watWindow.focused && watTab.active) {
-                    add("active")
-                  }
-                  if (watWindow.isBound) {
-                    add("bound")
-                  }
-                },
-              )
-              onClick {
-                messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
-              }
-            },
-          ) {
-            Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+
+        if (watWindow.treeExpanded) {
+          for ((i, watTab) in watWindow.tabs.withIndex()) {
+            Li(
+              attrs = {
+                classes(
+                  buildList {
+                    add("tabName")
+                    if (watWindow.focused && watTab.active) {
+                      add("active")
+                    }
+                    if (watWindow.isBound) {
+                      add("bound")
+                    }
+                  },
+                )
+                onClick {
+                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
+                }
+              },
+            ) {
+              Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+            }
           }
         }
       }

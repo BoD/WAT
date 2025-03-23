@@ -39,6 +39,7 @@ import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.RequestPublishWatWindows
 import org.jraf.wat.shared.messaging.SaveWatWindowMessage
+import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatRepository
@@ -177,6 +178,12 @@ class ServiceWorker {
         is UnsaveWatWindowMessage -> {
           GlobalScope.launch {
             watRepository.unsaveWindow(watWindowId = message.watWindowId)
+          }
+        }
+
+        is SetTreeExpandedMessage -> {
+          GlobalScope.launch {
+            watRepository.setTreeExpanded(watWindowId = message.watWindowId, treeExpanded = message.treeExpanded)
           }
         }
 
