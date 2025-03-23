@@ -50,13 +50,15 @@ class WatRepository {
     }
   }
 
-  fun bind(watWindowId: String, systemWindowId: Int) {
+  fun bind(watWindowId: String, systemWindow: Window) {
     val watWindow = getWindow(watWindowId)
     check(watWindow != null) { "WatWindow $watWindowId not found" }
     check(!watWindow.isBound) { "WatWindow $watWindowId is already bound to a system window" }
     _watWindows.value = _watWindows.value.map { watWindow ->
       if (watWindow.id == watWindowId) {
-        watWindow.copy(systemWindowId = systemWindowId)
+        watWindow.copy(
+          systemWindowId = systemWindow.id,
+        )
       } else {
         watWindow
       }
@@ -67,7 +69,16 @@ class WatRepository {
     _watWindows.value = _watWindows.value.mapNotNull {
       if (it.systemWindowId == systemWindowId) {
         if (it.isSaved) {
-          it.copy(systemWindowId = null)
+          it.copy(
+            systemWindowId = null,
+            focused = false,
+            tabs = it.tabs.map { tab ->
+              tab.copy(
+                systemTabId = null,
+                active = false,
+              )
+            },
+          )
         } else {
           null
         }
@@ -112,6 +123,7 @@ class WatRepository {
           height = systemWindow.height,
           tabs = systemWindow.tabs?.map { systemTab ->
             WatTab(
+              systemTabId = systemTab.id,
               title = systemTab.title,
               url = systemTab.url,
               favIconUrl = systemTab.favIconUrl,
@@ -167,18 +179,18 @@ class WatRepository {
         .filter { it.isSaved }
         // Some sanitization
         .map { window ->
-        window.copy(
-          systemWindowId = null,
-          focused = false,
-          tabs = window.tabs.map { tab ->
-            tab.copy(
-              active = false,
-              // favicons in the form of data URLs are huge, so we don't save them
-              favIconUrl = if (tab.favIconUrl?.startsWith("data:") == true) null else tab.favIconUrl,
-            )
-          },
-        )
-      },
+          window.copy(
+            systemWindowId = null,
+            focused = false,
+            tabs = window.tabs.map { tab ->
+              tab.copy(
+                active = false,
+                // favicons in the form of data URLs are huge, so we don't save them
+                favIconUrl = if (tab.favIconUrl?.startsWith("data:") == true) null else tab.favIconUrl,
+              )
+            },
+          )
+        },
     )
   }
 
@@ -196,6 +208,7 @@ class WatRepository {
           height = systemWindow.height,
           tabs = systemWindow.tabs?.map { systemTab ->
             WatTab(
+              systemTabId = systemTab.id,
               title = systemTab.title,
               url = systemTab.url,
               favIconUrl = systemTab.favIconUrl,
@@ -219,4 +232,8 @@ class WatRepository {
       }
     }
   }
+
+  fun getWatWindow(watWindowId: String): WatWindow? = watWindows.value.firstOrNull { it.id == watWindowId }
+
+  fun getWatWindowBySystemId(systemWindowId: Int): WatWindow? = watWindows.value.firstOrNull { it.systemWindowId == systemWindowId }
 }

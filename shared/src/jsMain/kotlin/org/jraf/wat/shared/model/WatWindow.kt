@@ -31,18 +31,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class WatWindow(
   val id: String,
-
-  val name: String,
-
-  val isSaved: Boolean,
-
-  /**
-   * If a window has a system window id it is bound.
-   */
   val systemWindowId: Int?,
-
+  val name: String,
+  val isSaved: Boolean,
   val focused: Boolean,
-
   val top: Int,
   val left: Int,
   val width: Int,
@@ -56,6 +48,7 @@ data class WatWindow(
 
 @Serializable
 data class WatTab(
+  val systemTabId: Int?,
   val title: String,
   val url: String,
   val favIconUrl: String?,

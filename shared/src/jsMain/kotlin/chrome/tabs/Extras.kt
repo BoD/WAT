@@ -25,3 +25,9 @@
 
 package chrome.tabs
 
+import kotlinx.js.JsPlainObject
+
+@JsPlainObject
+external interface UpdateProperties {
+  val active: Boolean?
+}

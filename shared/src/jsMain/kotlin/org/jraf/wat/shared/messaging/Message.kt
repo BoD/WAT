@@ -38,7 +38,7 @@ data object RequestPublishWatWindows : Message()
 class PublishWatWindows(val watWindows: List<WatWindow>) : Message()
 
 @Serializable
-class FocusOrCreateWatWindowMessage(val watWindow: WatWindow) : Message()
+class FocusOrCreateWatWindowMessage(val watWindowId: String, val tabIndex: Int?) : Message()
 
 @Serializable
 class SaveWatWindowMessage(val watWindowId: String, val windowName: String) : Message()

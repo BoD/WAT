@@ -54,8 +54,8 @@ class Messenger {
     sendMessage(message)
   }
 
-  fun sendFocusOrCreateWatWindowMessage(watWindow: WatWindow) {
-    val message = FocusOrCreateWatWindowMessage(watWindow)
+  fun sendFocusOrCreateWatWindowMessage(watWindowId: String, tabIndex: Int?) {
+    val message = FocusOrCreateWatWindowMessage(watWindowId, tabIndex)
     sendMessage(message)
   }
 

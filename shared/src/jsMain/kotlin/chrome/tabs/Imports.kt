@@ -140,3 +140,5 @@ external interface ChangeInfo {
   val discarded: Boolean?
   val status: String?
 }
+
+external fun update(tabId: Int, updateProperties: UpdateProperties): Promise<Tab>

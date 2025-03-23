@@ -25,6 +25,7 @@
 
 package org.jraf.wat.serviceworker.main
 
+import chrome.tabs.UpdateProperties
 import chrome.windows.CreateData
 import chrome.windows.CreateType
 import chrome.windows.QueryOptions
@@ -41,7 +42,6 @@ import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatRepository
-import org.jraf.wat.shared.model.WatWindow
 
 class ServiceWorker {
   private val watRepository = WatRepository()
@@ -86,7 +86,7 @@ class ServiceWorker {
         if (window.type != WindowType.normal) return@addListener
 
         if (watWindowIdToBind != null) {
-          watRepository.bind(watWindowId = watWindowIdToBind!!, systemWindowId = window.id!!)
+          watRepository.bind(watWindowId = watWindowIdToBind!!, systemWindow = window)
           watWindowIdToBind = null
         } else {
           watRepository.addSystemWindow(window)
@@ -117,6 +117,15 @@ class ServiceWorker {
     }
     chrome.tabs.onUpdated.addListener { tabId, changeInfo, tab ->
       updateWindowRepository()
+      if (tabIndexToActivate != null) {
+        val systemTabIdToActivate = watRepository.getWatWindowBySystemId(tab.windowId)?.tabs?.getOrNull(tabIndexToActivate!!)?.systemTabId
+        if (systemTabIdToActivate != null) {
+          GlobalScope.launch {
+            chrome.tabs.update(systemTabIdToActivate, UpdateProperties(active = true)).await()
+            tabIndexToActivate = null
+          }
+        }
+      }
     }
     chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
       updateWindowRepository()
@@ -156,9 +165,7 @@ class ServiceWorker {
         }
 
         is FocusOrCreateWatWindowMessage -> {
-          val watWindow = message.watWindow
-          focusOrCreateWatWindow(watWindow)
-
+          focusOrCreateWatWindow(message.watWindowId, message.tabIndex)
         }
 
         is SaveWatWindowMessage -> {
@@ -184,14 +191,20 @@ class ServiceWorker {
   }
 
   private var watWindowIdToBind: String? = null
+  private var tabIndexToActivate: Int? = null
 
-  private fun focusOrCreateWatWindow(watWindow: WatWindow) {
-    if (watWindow.systemWindowId != null) {
+  private fun focusOrCreateWatWindow(watWindowId: String, tabIndex: Int?) {
+    val watWindow = watRepository.getWatWindow(watWindowId) ?: return
+    if (watWindow.isBound) {
       GlobalScope.launch {
         chrome.windows.update(watWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
+        if (tabIndex != null) {
+          chrome.tabs.update(watWindow.tabs[tabIndex].systemTabId!!, UpdateProperties(active = true)).await()
+        }
       }
     } else {
-      watWindowIdToBind = watWindow.id
+      watWindowIdToBind = watWindowId
+      tabIndexToActivate = tabIndex
       chrome.windows.create(
         CreateData(
           url = watWindow.tabs.map { it.url }.toTypedArray(),

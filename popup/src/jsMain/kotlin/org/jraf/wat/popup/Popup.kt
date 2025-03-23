@@ -65,9 +65,8 @@ class Popup {
                 }
               },
             )
-
             onClick {
-              messenger.sendFocusOrCreateWatWindowMessage(watWindow)
+              messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
             }
           },
         ) {
@@ -99,13 +98,13 @@ class Popup {
             }
           }
         }
-        for (savedTab in watWindow.tabs) {
+        for ((i, watTab) in watWindow.tabs.withIndex()) {
           Li(
             attrs = {
               classes(
                 buildList {
                   add("tabName")
-                  if (watWindow.focused && savedTab.active) {
+                  if (watWindow.focused && watTab.active) {
                     add("active")
                   }
                   if (watWindow.isBound) {
@@ -113,9 +112,12 @@ class Popup {
                   }
                 },
               )
+              onClick {
+                messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
+              }
             },
           ) {
-            Text(savedTab.title.takeIf { it.isNotBlank() } ?: savedTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+            Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
           }
         }
       }

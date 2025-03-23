@@ -86,13 +86,13 @@ class StorageRepository {
 private fun StorageWindow.toWatWindow(): WatWindow {
   return WatWindow(
     id = id,
+    systemWindowId = null,
     name = name,
     top = top,
     left = left,
     width = width,
     height = height,
     isSaved = true,
-    systemWindowId = null,
     focused = false,
     tabs = tabs.map { it.toWatTab() },
   )
@@ -100,6 +100,7 @@ private fun StorageWindow.toWatWindow(): WatWindow {
 
 private fun StorageTab.toWatTab(): WatTab {
   return WatTab(
+    systemTabId = null,
     title = title,
     url = url,
     favIconUrl = favIconUrl,
