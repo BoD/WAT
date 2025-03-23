@@ -1,3 +1,3 @@
-# BoD's Window Manager
+# WAT (Windows And Tabs)
 
 ## WIP!!!

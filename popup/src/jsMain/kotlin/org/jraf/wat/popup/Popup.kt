@@ -28,11 +28,11 @@ package org.jraf.wat.popup
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import chrome.runtime.onMessage
+import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
-import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindows
@@ -45,84 +45,77 @@ class Popup {
   private val watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
 
   fun start() {
+    window.resizeTo(window.outerWidth, window.screen.availHeight)
     registerMessageListener()
     messenger.sendRequestPublishWatWindows()
 
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
-      Ul {
-        for (watWindow in watWindows) {
-          Li(
-            attrs = {
-              onClick {
-                messenger.sendFocusOrCreateWatWindowMessage(watWindow)
-              }
-            },
-          ) {
+      for (watWindow in watWindows) {
+        Li(
+          attrs = {
+            classes(
+              buildList {
+                add("windowName")
+                if (watWindow.focused) {
+                  add("focused")
+                }
+                if (watWindow.isBound) {
+                  add("bound")
+                }
+              },
+            )
+
+            onClick {
+              messenger.sendFocusOrCreateWatWindowMessage(watWindow)
+            }
+          },
+        ) {
+          Text(watWindow.name)
+          if (watWindow.isSaved) {
             Span(
               attrs = {
-                classes(
-                  buildList {
-                    add("windowName")
-                    if (watWindow.focused) {
-                      add("focused")
-                    }
-                    if (watWindow.isBound) {
-                      add("bound")
-                    }
-                  },
-                )
+                onClick {
+                  it.stopPropagation()
+                  messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+                }
               },
             ) {
-              Text(watWindow.name)
-              if (watWindow.isSaved) {
-                Span(
-                  attrs = {
-                    onClick {
-                      it.stopPropagation()
-                      messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
-                    }
-                  },
-                ) {
-                  Text(" 🗑️")
-                }
-              } else {
-                Span(
-                  attrs = {
-                    onClick {
-                      it.stopPropagation()
-                      val windowName: String? = js("""prompt("Window name:")""")
-                      if (!windowName.isNullOrBlank()) {
-                        messenger.sendSaveWatWindowMessage(watWindowId = watWindow.id, windowName = windowName.trim())
-                      }
-                    }
-                  },
-                ) {
-                  Text(" 💾")
-                }
-              }
+              Text(" 🗑️")
             }
-            Ul {
-              for (savedTab in watWindow.tabs) {
-                Li(
-                  attrs = {
-                    classes(
-                      buildList {
-                        add("tabName")
-                        if (watWindow.focused && savedTab.active) {
-                          add("active")
-                        }
-                        if (watWindow.isBound) {
-                          add("bound")
-                        }
-                      },
-                    )
-                  },
-                ) {
-                  Text(savedTab.title.takeIf { it.isNotBlank() } ?: savedTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+          } else {
+            Span(
+              attrs = {
+                onClick {
+                  it.stopPropagation()
+                  val windowName: String? = js("""prompt("Window name:")""")
+                  if (!windowName.isNullOrBlank()) {
+                    messenger.sendSaveWatWindowMessage(watWindowId = watWindow.id, windowName = windowName.trim())
+                  }
                 }
-              }
+              },
+            ) {
+              Text(" 💾")
             }
+          }
+        }
+        for (savedTab in watWindow.tabs) {
+          Li(
+            attrs = {
+              classes(
+                buildList {
+                  add("tabName")
+                  if (watWindow.focused && savedTab.active) {
+                    add("active")
+                  }
+                  if (watWindow.isBound) {
+                    add("bound")
+                  }
+                },
+              )
+            },
+          ) {
+            Text(savedTab.title.takeIf { it.isNotBlank() } ?: savedTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
           }
         }
       }

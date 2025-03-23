@@ -43,12 +43,15 @@ data class WatWindow(
 
   val focused: Boolean,
 
+  val top: Int,
+  val left: Int,
+  val width: Int,
+  val height: Int,
+
   val tabs: List<WatTab>,
 ) {
   val isBound: Boolean
     get() = systemWindowId != null
-
-  companion object
 }
 
 @Serializable

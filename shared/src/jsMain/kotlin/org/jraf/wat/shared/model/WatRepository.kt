@@ -30,22 +30,22 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.jraf.wat.shared.settings.SettingsRepository
+import org.jraf.wat.shared.storage.StorageRepository
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class WatRepository {
-  private val settingsRepository = SettingsRepository()
+  private val storageRepository = StorageRepository()
 
   private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
   val watWindows: StateFlow<List<WatWindow>> = _watWindows
 
   init {
     GlobalScope.launch {
-      settingsRepository.settings.collect { settings ->
-        addSavedWatWindows(settings.savedWatWindows)
+      storageRepository.watWindows.collect { watWindows ->
+        addSavedWatWindows(watWindows)
       }
     }
   }
@@ -106,6 +106,10 @@ class WatRepository {
           isSaved = false,
           systemWindowId = systemWindow.id!!,
           focused = systemWindow.focused,
+          top = systemWindow.top,
+          left = systemWindow.left,
+          width = systemWindow.width,
+          height = systemWindow.height,
           tabs = systemWindow.tabs?.map { systemTab ->
             WatTab(
               title = systemTab.title,
@@ -158,14 +162,19 @@ class WatRepository {
   }
 
   private suspend fun saveWindows() {
-    settingsRepository.saveWatWindows(
-      _watWindows.value.filter { it.isSaved }.map { window ->
+    storageRepository.saveWatWindows(
+      _watWindows.value
+        .filter { it.isSaved }
+        // Some sanitization
+        .map { window ->
         window.copy(
           systemWindowId = null,
           focused = false,
           tabs = window.tabs.map { tab ->
             tab.copy(
               active = false,
+              // favicons in the form of data URLs are huge, so we don't save them
+              favIconUrl = if (tab.favIconUrl?.startsWith("data:") == true) null else tab.favIconUrl,
             )
           },
         )
@@ -175,12 +184,16 @@ class WatRepository {
 
   private fun getWindow(watWindowId: String): WatWindow? = _watWindows.value.firstOrNull { it.id == watWindowId }
 
-  fun updateWatWindows(systemWindows: List<Window>) {
+  suspend fun updateWatWindows(systemWindows: List<Window>) {
     _watWindows.value = _watWindows.value.map { watWindow ->
       val systemWindow = systemWindows.firstOrNull { it.id == watWindow.systemWindowId }
       if (systemWindow != null) {
         watWindow.copy(
           focused = systemWindow.focused,
+          top = systemWindow.top,
+          left = systemWindow.left,
+          width = systemWindow.width,
+          height = systemWindow.height,
           tabs = systemWindow.tabs?.map { systemTab ->
             WatTab(
               title = systemTab.title,
@@ -194,6 +207,7 @@ class WatRepository {
         watWindow
       }
     }
+    saveWindows()
   }
 
   fun focusSystemWindow(systemWindowId: Int) {

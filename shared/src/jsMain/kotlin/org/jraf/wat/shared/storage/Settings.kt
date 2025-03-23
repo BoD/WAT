@@ -23,22 +23,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-@file:JsQualifier("chrome.system.display")
+package org.jraf.wat.shared.storage
 
-package chrome.system.display
+import kotlinx.serialization.Serializable
 
-import kotlin.js.Promise
+@Serializable
+data class StorageWindowIds(
+  val watWindowIds: List<String>,
+)
 
-external fun getInfo(): Promise<Array<DisplayUnitInfo>>
+@Serializable
+data class StorageWindow(
+  val id: String,
+  val name: String,
+  val top: Int,
+  val left: Int,
+  val width: Int,
+  val height: Int,
+  val tabs: List<StorageTab>,
+)
 
-external interface DisplayUnitInfo {
-  val isPrimary: Boolean
-  val workArea: Bounds
-}
-
-external interface Bounds {
-  val left: Int
-  val top: Int
-  val width: Int
-  val height: Int
-}
+@Serializable
+data class StorageTab(
+  val title: String,
+  val url: String,
+  val favIconUrl: String?,
+)

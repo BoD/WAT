@@ -25,26 +25,12 @@
 
 package org.jraf.wat.serviceworker.main
 
-import chrome.action.onClicked
-import chrome.runtime.getURL
-import chrome.runtime.onMessage
-import chrome.tabs.onActivated
-import chrome.tabs.onAttached
-import chrome.tabs.onDetached
-import chrome.tabs.onMoved
-import chrome.tabs.onReplaced
-import chrome.tabs.onUpdated
 import chrome.windows.CreateData
 import chrome.windows.CreateType
 import chrome.windows.QueryOptions
 import chrome.windows.UpdateInfo
 import chrome.windows.WindowType
-import chrome.windows.create
-import chrome.windows.getAll
-import chrome.windows.onCreated
-import chrome.windows.onFocusChanged
-import chrome.windows.onRemoved
-import chrome.windows.update
+import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
@@ -81,20 +67,20 @@ class ServiceWorker {
 
   private fun initWindowRepository() {
     GlobalScope.launch {
-      val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
       watRepository.addSystemWindows(windows.toList())
     }
   }
 
   private fun updateWindowRepository() {
     GlobalScope.launch {
-      val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
       watRepository.updateWatWindows(windows.toList())
     }
   }
 
   private fun observeWindows() {
-    onCreated.addListener(
+    chrome.windows.onCreated.addListener(
       callback = { window ->
         // Only consider normal windows
         if (window.type != WindowType.normal) return@addListener
@@ -107,11 +93,21 @@ class ServiceWorker {
         }
       },
     )
-    onRemoved.addListener { systemWindowId ->
+    chrome.windows.onRemoved.addListener { systemWindowId ->
       watRepository.unbind(systemWindowId)
     }
-    onFocusChanged.addListener { systemWindowId ->
-      watRepository.focusSystemWindow(systemWindowId)
+    chrome.windows.onFocusChanged.addListener { systemWindowId ->
+      // Ignore focusing the popup window
+      if (systemWindowId != popupWindowId) {
+        watRepository.focusSystemWindow(systemWindowId)
+      }
+    }
+    // Doesn't exist in Firefox
+    @Suppress("SENSELESS_COMPARISON")
+    if (chrome.windows.onBoundsChanged !== undefined) {
+      chrome.windows.onBoundsChanged.addListener {
+        updateWindowRepository()
+      }
     }
   }
 
@@ -119,31 +115,34 @@ class ServiceWorker {
     chrome.tabs.onCreated.addListener { tab ->
       updateWindowRepository()
     }
-    onUpdated.addListener { tabId, changeInfo, tab ->
+    chrome.tabs.onUpdated.addListener { tabId, changeInfo, tab ->
       updateWindowRepository()
     }
     chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
       updateWindowRepository()
     }
-    onMoved.addListener { tabId, moveInfo ->
+    chrome.tabs.onMoved.addListener { tabId, moveInfo ->
       updateWindowRepository()
     }
-    onAttached.addListener { tabId, attachInfo ->
+    chrome.tabs.onAttached.addListener { tabId, attachInfo ->
       updateWindowRepository()
     }
-    onDetached.addListener { tabId, detachInfo ->
+    chrome.tabs.onDetached.addListener { tabId, detachInfo ->
       updateWindowRepository()
     }
-    onReplaced.addListener { addedTabId, removedTabId ->
+    chrome.tabs.onReplaced.addListener { addedTabId, removedTabId ->
       updateWindowRepository()
     }
-    onActivated.addListener { activeInfo ->
-      updateWindowRepository()
+    chrome.tabs.onActivated.addListener { activeInfo ->
+      // Ignore focusing the popup window
+      if (activeInfo.windowId != popupWindowId) {
+        updateWindowRepository()
+      }
     }
   }
 
   private fun registerMessageListener() {
-    onMessage.addListener { msg, _, sendResponse ->
+    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
 //        GetSavedWindowsMessage -> {
 //          GlobalScope.launch {
@@ -189,28 +188,41 @@ class ServiceWorker {
   private fun focusOrCreateWatWindow(watWindow: WatWindow) {
     if (watWindow.systemWindowId != null) {
       GlobalScope.launch {
-        update(watWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
+        chrome.windows.update(watWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
       }
     } else {
       watWindowIdToBind = watWindow.id
-      create(CreateData(url = watWindow.tabs.map { it.url }.toTypedArray()))
+      chrome.windows.create(
+        CreateData(
+          url = watWindow.tabs.map { it.url }.toTypedArray(),
+          top = watWindow.top,
+          left = watWindow.left,
+          width = watWindow.width,
+          height = watWindow.height,
+        ),
+      )
     }
   }
 
   private fun setupActionButton() {
     // "action" is the extension's icon in the toolbar
-    onClicked.addListener {
+    chrome.action.onClicked.addListener {
       GlobalScope.launch {
         // If the popup window is already open, focus it, otherwise create it
-        if (getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
-          update(popupWindowId!!, UpdateInfo(focused = true))
+        if (chrome.windows.getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
+          chrome.windows.update(popupWindowId!!, UpdateInfo(focused = true))
         } else {
-          // TODO
-//          val height = chrome.system.display.getInfo().await().firstOrNull { it.isPrimary }?.workArea?.height ?: 800
-          val height = 800
-          popupWindowId = create(
+          val height = if (jsTypeOf(window) == "undefined") {
+            // In Chrome window is not defined in the service worker.
+            // It's ok because the popup is resizing itself (which doesn't work in Firefox ¯\_(ツ)_/¯)
+            // Also... "not defined" is not the same as undefined... ¯\_(ツ)_/¯
+            800
+          } else {
+            window.screen.availHeight
+          }
+          popupWindowId = chrome.windows.create(
             CreateData(
-              url = arrayOf(getURL("popup.html")),
+              url = arrayOf(chrome.runtime.getURL("popup.html")),
               type = CreateType.popup,
               focused = true,
               top = 0,

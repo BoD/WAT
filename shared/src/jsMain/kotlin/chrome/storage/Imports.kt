@@ -34,4 +34,6 @@ external val sync: Sync
 external interface Sync {
   fun get(item: String): Promise<dynamic>
   fun set(item: dynamic): Promise<dynamic>
+
+  fun clear(): Promise<Unit>
 }

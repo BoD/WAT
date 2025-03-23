@@ -36,6 +36,7 @@ external interface OnFocusChanged {
   fun addListener(callback: (windowId: Int) -> Unit)
 }
 
+
 external val onCreated: OnCreated
 
 external interface OnCreated {
@@ -49,14 +50,25 @@ external interface OnRemoved {
   fun addListener(callback: (windowId: Int) -> Unit)
 }
 
+
+external val onBoundsChanged: OnBoundsChanged
+
+external interface OnBoundsChanged {
+  fun addListener(callback: (window: Window) -> Unit)
+}
+
 external fun getAll(queryOptions: QueryOptions?): Promise<Array<Window>>
 
 external interface Window {
   val id: Int?
   val focused: Boolean
-  val incognito : Boolean
+  val incognito: Boolean
   val tabs: Array<Tab>?
   val type: /*WindowType*/ String?
+  val top: Int
+  val left: Int
+  val width: Int
+  val height: Int
 }
 
 external fun create(createData: CreateData): Promise<Window>

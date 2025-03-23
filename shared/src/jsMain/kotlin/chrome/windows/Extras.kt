@@ -52,6 +52,7 @@ external interface CreateData {
   val left: Int?
   val width: Int?
   val height: Int?
+  val state: String?
 }
 
 interface CreateType {
@@ -59,6 +60,7 @@ interface CreateType {
     const val normal = "normal"
     const val popup = "popup"
     const val panel = "panel"
+    const val detached_panel = "detached_panel"
   }
 }
 
