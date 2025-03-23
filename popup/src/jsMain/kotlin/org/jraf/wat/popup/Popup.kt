@@ -70,28 +70,21 @@ class Popup {
             }
           },
         ) {
-          if (watWindow.treeExpanded) {
-            Span(
-              attrs = {
-                onClick {
-                  it.stopPropagation()
-                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = false)
-                }
+          Span(
+            attrs = {
+              onClick {
+                it.stopPropagation()
+                messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+              }
+            },
+          ) {
+            Text(
+              if (watWindow.treeExpanded) {
+                "▽ "
+              } else {
+                "▷ "
               },
-            ) {
-              Text("▽ ")
-            }
-          } else {
-            Span(
-              attrs = {
-                onClick {
-                  it.stopPropagation()
-                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = true)
-                }
-              },
-            ) {
-              Text("▷ ")
-            }
+            )
           }
           Text(watWindow.name)
           if (watWindow.isSaved) {
