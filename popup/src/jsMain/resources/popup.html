@@ -9,8 +9,8 @@
       --unboundColor: #999;
       --focusedWindowBgColor: #004;
       --selectedTabBgColor: #004;
-      --smallWidth: .3em;
-      --mediumWidth: 1.6em;
+      --smallWidth: .3rem;
+      --mediumWidth: 1.6rem;
     }
 
     body {
@@ -54,10 +54,15 @@
 
     .window .name {
       flex-grow: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .window .treeExpander {
-      padding-right: var(--smallWidth);
+      margin-right: var(--smallWidth);
+      width: 1rem;
+      text-align: center;
+      font-size: 120%;
     }
 
     .window .actionIcon {
@@ -84,6 +89,11 @@
 
     .tab.active {
       background-color: var(--selectedTabBgColor);
+    }
+
+    .tab .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>

@@ -85,9 +85,9 @@ class Popup {
           ) {
             Text(
               if (watWindow.treeExpanded) {
-                "▽ "
+                "▾"
               } else {
-                "▷ "
+                "▸"
               },
             )
           }
@@ -201,7 +201,13 @@ class Popup {
                 }
               },
             ) {
-              Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+              Span(
+                attrs = {
+                  classes("name")
+                },
+              ) {
+                Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+              }
             }
           }
         }
