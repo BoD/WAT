@@ -49,7 +49,9 @@ class ServiceWorker {
 
   private val messenger = Messenger()
 
-  private var popupWindowId: Int? = null
+  private val popupWindowUrl by lazy {
+    chrome.runtime.getURL("popup.html")
+  }
 
   fun start() {
     GlobalScope.launch {
@@ -99,8 +101,10 @@ class ServiceWorker {
       watRepository.unbind(systemWindowId)
     }
     chrome.windows.onFocusChanged.addListener { systemWindowId ->
-      // Ignore focusing the popup window
-      if (systemWindowId != popupWindowId) {
+      GlobalScope.launch {
+        // Ignore focusing the popup window
+        val focusedWindow = chrome.windows.get(systemWindowId, QueryOptions(populate = true)).await() ?: return@launch
+        if (focusedWindow.tabs?.firstOrNull()?.url == popupWindowUrl) return@launch
         watRepository.focusSystemWindow(systemWindowId)
       }
     }
@@ -145,8 +149,10 @@ class ServiceWorker {
       updateWindowRepository()
     }
     chrome.tabs.onActivated.addListener { activeInfo ->
-      // Ignore focusing the popup window
-      if (activeInfo.windowId != popupWindowId) {
+      GlobalScope.launch {
+        // Ignore focusing the popup window
+        val tab = chrome.tabs.get(activeInfo.tabId).await() ?: return@launch
+        if (tab.url == popupWindowUrl) return@launch
         updateWindowRepository()
       }
     }
@@ -230,8 +236,10 @@ class ServiceWorker {
     chrome.action.onClicked.addListener {
       GlobalScope.launch {
         // If the popup window is already open, focus it, otherwise create it
-        if (chrome.windows.getAll(QueryOptions(windowTypes = arrayOf(WindowType.popup))).await().any { it.id == popupWindowId }) {
-          chrome.windows.update(popupWindowId!!, UpdateInfo(focused = true))
+        val popupWindow = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.popup))).await()
+          .firstOrNull { it.tabs?.any { it.url == popupWindowUrl } == true }
+        if (popupWindow != null) {
+          chrome.windows.update(popupWindow.id!!, UpdateInfo(focused = true))
         } else {
           val height = if (jsTypeOf(window) == "undefined") {
             // In Chrome window is not defined in the service worker.
@@ -241,9 +249,9 @@ class ServiceWorker {
           } else {
             window.screen.availHeight
           }
-          popupWindowId = chrome.windows.create(
+          chrome.windows.create(
             CreateData(
-              url = arrayOf(chrome.runtime.getURL("popup.html")),
+              url = arrayOf(popupWindowUrl),
               type = CreateType.popup,
               focused = true,
               top = 0,
@@ -251,7 +259,7 @@ class ServiceWorker {
               width = 320,
               height = height,
             ),
-          ).await().id
+          ).await()
         }
       }
     }

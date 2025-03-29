@@ -57,6 +57,8 @@ external interface OnBoundsChanged {
   fun addListener(callback: (window: Window) -> Unit)
 }
 
+external fun get(windowId: Int, queryOptions: QueryOptions?): Promise<Window?>
+
 external fun getAll(queryOptions: QueryOptions?): Promise<Array<Window>>
 
 external interface Window {

@@ -29,7 +29,7 @@ package chrome.tabs
 
 import kotlin.js.Promise
 
-external fun get(tabId: Int): Promise<Tab>
+external fun get(tabId: Int): Promise<Tab?>
 
 external interface Tab {
   val id: Int
