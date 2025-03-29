@@ -121,6 +121,9 @@ class Popup {
                 onClick {
                   messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
                 }
+                onDoubleClick {
+                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                }
               },
             ) {
               Text(watWindow.name)
@@ -148,7 +151,8 @@ class Popup {
               Text(" ✏️")
             }
             // Only show the unsave icon if the window is bound, because otherwise it's dangerous
-            if (watWindow.isBound) {
+            // Also don't show it if the window is being edited, because it would be confusing
+            if (watWindow.isBound && watWindowIdBeingEdited == null) {
               Span(
                 attrs = {
                   classes("actionIcon")

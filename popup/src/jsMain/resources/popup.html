@@ -5,12 +5,14 @@
   <meta charset="UTF-8">
   <style>
     :root {
+      --windowBgColor: black;
       --boundColor: white;
       --unboundColor: #999;
-      --focusedWindowBgColor: #004;
-      --selectedTabBgColor: #004;
+      --selectedBgColor: #804400;
+      --selectedFgColor: black;
       --smallWidth: .3rem;
       --mediumWidth: 1.6rem;
+      --borderRadius: .6rem;
     }
 
     body {
@@ -18,7 +20,7 @@
       padding: 0;
       font-size: .8rem;
       font-family: sans-serif;
-      background-color: black;
+      background-color: var(--windowBgColor);
       user-select: none;
     }
 
@@ -37,7 +39,7 @@
       list-style-type: none;
       padding: var(--smallWidth);
       margin: var(--smallWidth);
-      border-radius: var(--smallWidth);
+      border-radius: var(--borderRadius);
     }
 
     .window:hover .actionIcon {
@@ -49,7 +51,7 @@
     }
 
     .window.focused {
-      background-color: var(--focusedWindowBgColor);
+      background-color: var(--selectedBgColor);
     }
 
     .window .name {
@@ -66,12 +68,14 @@
     }
 
     .window .actionIcon {
-      padding-left: calc(var(--smallWidth) * 3);
+      padding-left: calc(var(--smallWidth) * 2);
+      padding-right: calc(var(--smallWidth) * 2);
       display: none;
+      transition: all .2s ease-in-out;
     }
 
     .window .actionIcon:hover {
-      scale: 1.2;
+      transform: scale(1.2);
     }
 
     .tab {
@@ -80,7 +84,7 @@
       list-style-type: none;
       padding: var(--smallWidth) var(--smallWidth) var(--smallWidth) var(--mediumWidth);
       margin: var(--smallWidth);
-      border-radius: var(--smallWidth);
+      border-radius: var(--borderRadius);
     }
 
     .tab.bound {
@@ -88,7 +92,7 @@
     }
 
     .tab.active {
-      background-color: var(--selectedTabBgColor);
+      background-color: var(--selectedBgColor);
     }
 
     .tab .name {
