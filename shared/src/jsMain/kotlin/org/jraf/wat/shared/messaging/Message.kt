@@ -26,7 +26,7 @@
 package org.jraf.wat.shared.messaging
 
 import kotlinx.serialization.Serializable
-import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.repository.wat.WatWindow
 
 @Serializable
 sealed class Message

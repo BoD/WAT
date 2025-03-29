@@ -23,14 +23,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.model
+package org.jraf.wat.shared.repository.wat
 
 import chrome.windows.Window
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import org.jraf.wat.shared.storage.StorageRepository
+import org.jraf.wat.shared.repository.storage.StorageRepository
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -42,12 +40,8 @@ class WatRepository {
   private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
   val watWindows: StateFlow<List<WatWindow>> = _watWindows
 
-  init {
-    GlobalScope.launch {
-      storageRepository.watWindows.collect { watWindows ->
-        addSavedWatWindows(watWindows)
-      }
-    }
+  suspend fun init() {
+    _watWindows.value = storageRepository.loadWatWindowsFromStorageMinusSystemWindows()
   }
 
   fun bind(watWindowId: String, systemWindow: Window) {
@@ -88,15 +82,9 @@ class WatRepository {
     }
   }
 
-  private fun addSavedWatWindows(savedWatWindows: List<WatWindow>) {
-    _watWindows.value = savedWatWindows
-      // Don't add windows twice
-      .filterNot {
-        _watWindows.value.any { watWindow -> watWindow.id == it.id }
-      } + _watWindows.value
-  }
-
   fun addSystemWindows(systemWindows: List<Window>) {
+    console.log("Current watWindows=%o", _watWindows.value)
+    console.log("addSystemWindows systemWindows=%o", systemWindows)
     _watWindows.value = _watWindows.value + systemWindows
       // Ignore windows that are already bound
       .filterNot {
@@ -133,6 +121,7 @@ class WatRepository {
           treeExpanded = true,
         )
       }
+    console.log("After watWindows=%o", _watWindows.value)
   }
 
   fun addSystemWindow(systemWindow: Window) {
@@ -181,11 +170,8 @@ class WatRepository {
         // Some sanitization
         .map { window ->
           window.copy(
-            systemWindowId = null,
-            focused = false,
             tabs = window.tabs.map { tab ->
               tab.copy(
-                active = false,
                 // favicons in the form of data URLs are huge, so we don't save them
                 favIconUrl = if (tab.favIconUrl?.startsWith("data:") == true) null else tab.favIconUrl,
               )

@@ -29,9 +29,10 @@ package chrome.storage
 
 import kotlin.js.Promise
 
-external val sync: Sync
+external val local: StorageArea
+external val sync: StorageArea
 
-external interface Sync {
+external interface StorageArea {
   fun get(item: String): Promise<dynamic>
   fun set(item: dynamic): Promise<dynamic>
 

@@ -7,7 +7,7 @@
  *                              /___/
  * repository.
  *
- * Copyright (C) 2024-present Benoit 'BoD' Lubek (BoD@JRAF.org)
+ * Copyright (C) 2025-present Benoit 'BoD' Lubek (BoD@JRAF.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,70 +23,57 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.storage
+package org.jraf.wat.shared.repository.storage
 
-import kotlinx.coroutines.GlobalScope
+import chrome.windows.QueryOptions
+import chrome.windows.WindowType
 import kotlinx.coroutines.await
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.wat.shared.model.WatTab
-import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.repository.wat.WatTab
+import org.jraf.wat.shared.repository.wat.WatWindow
 
 class StorageRepository {
-  private val _watWindows = MutableStateFlow<List<WatWindow>>(emptyList())
-  val watWindows: Flow<List<WatWindow>> = _watWindows
-
-  init {
-    GlobalScope.launch {
-      val watWindowsFromStorage = loadWatWindowsFromStorage()
-      if (watWindowsFromStorage != null) {
-        _watWindows.value = watWindowsFromStorage
+  suspend fun loadWatWindowsFromStorageMinusSystemWindows(): List<WatWindow> {
+    val watWindowsFromStorage = loadWatWindowsFromStorage() ?: return emptyList()
+    // Remove any saved system window ids that don't currently exist
+    val systemWindowIds = chrome.windows.getAll(QueryOptions(populate = false, windowTypes = arrayOf(WindowType.normal))).await()
+      .mapNotNull { it.id }
+    return watWindowsFromStorage.map {
+      if (!systemWindowIds.contains(it.systemWindowId)) {
+        it.copy(systemWindowId = null)
+      } else {
+        it
       }
     }
-
-    // TODO Listen to changes in the storage
-    // via https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/StorageArea/onChanged
   }
 
   private suspend fun loadWatWindowsFromStorage(): List<WatWindow>? {
-    val items = chrome.storage.sync.get("windowIds").await()
-    val obj = items.windowIds
+    val items = chrome.storage.local.get("StorageRoot").await()
+    val obj = items.StorageRoot
     return if (obj == undefined) {
       null
     } else {
-      val storageWindowIds: StorageWindowIds = toKotlin(obj)
-      storageWindowIds.watWindowIds.mapNotNull { watWindowId ->
-        val items = chrome.storage.sync.get(watWindowId).await()
-        val obj = items[watWindowId]
-        if (obj == undefined) {
-          null
-        } else {
-          toKotlin<StorageWindow>(obj).toWatWindow()
-        }
+      val storageRoot: StorageRoot = toKotlin(obj)
+      storageRoot.windows.map { storageWindow ->
+        storageWindow.toWatWindow()
       }
     }
   }
 
   suspend fun saveWatWindows(watWindows: List<WatWindow>) {
     val obj = js("{}")
-    obj.windowIds = StorageWindowIds(watWindows.map { it.id }).toDynamic()
-    for (watWindow in watWindows) {
-      obj[watWindow.id] = watWindow.toStorageWindow().toDynamic()
-    }
-    chrome.storage.sync.clear().await()
-    chrome.storage.sync.set(obj).await()
-    _watWindows.value = watWindows
+    console.log("watWindows=%o", watWindows)
+    obj.StorageRoot = StorageRoot(windows = watWindows.map { it.toStorageWindow() }).toDynamic()
+    chrome.storage.local.set(obj).await()
   }
 }
 
 private fun StorageWindow.toWatWindow(): WatWindow {
   return WatWindow(
     id = id,
-    systemWindowId = null,
+    systemWindowId = systemWindowId,
     name = name,
     top = top,
     left = left,
@@ -112,6 +99,7 @@ private fun StorageTab.toWatTab(): WatTab {
 private fun WatWindow.toStorageWindow(): StorageWindow {
   return StorageWindow(
     id = id,
+    systemWindowId = systemWindowId!!,
     name = name,
     top = top,
     left = left,

@@ -42,7 +42,7 @@ import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
-import org.jraf.wat.shared.model.WatRepository
+import org.jraf.wat.shared.repository.wat.WatRepository
 
 class ServiceWorker {
   private val watRepository = WatRepository()
@@ -52,25 +52,26 @@ class ServiceWorker {
   private var popupWindowId: Int? = null
 
   fun start() {
-    initWindowRepository()
-    observeWindows()
-    observeTabs()
-    registerMessageListener()
-
     GlobalScope.launch {
-      watRepository.watWindows.collect {
-        messenger.sendPublishWatWindows(it)
-      }
-    }
+      initWindowRepository()
+      observeWindows()
+      observeTabs()
+      registerMessageListener()
 
-    setupActionButton()
+      launch {
+        watRepository.watWindows.collect {
+          messenger.sendPublishWatWindows(it)
+        }
+      }
+
+      setupActionButton()
+    }
   }
 
-  private fun initWindowRepository() {
-    GlobalScope.launch {
-      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
-      watRepository.addSystemWindows(windows.toList())
-    }
+  private suspend fun initWindowRepository() {
+    watRepository.init()
+    val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+    watRepository.addSystemWindows(windows.toList())
   }
 
   private fun updateWindowRepository() {

@@ -30,7 +30,7 @@ package org.jraf.wat.shared.messaging
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.repository.wat.WatWindow
 import kotlin.js.Promise
 import kotlin.uuid.ExperimentalUuidApi
 

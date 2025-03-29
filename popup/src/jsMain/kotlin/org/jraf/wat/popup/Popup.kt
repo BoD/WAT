@@ -42,7 +42,7 @@ import org.jetbrains.compose.web.renderComposable
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindows
 import org.jraf.wat.shared.messaging.asMessage
-import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.repository.wat.WatWindow
 
 class Popup {
   private val messenger = Messenger()
