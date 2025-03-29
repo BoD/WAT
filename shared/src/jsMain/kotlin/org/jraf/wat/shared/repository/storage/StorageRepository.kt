@@ -64,7 +64,6 @@ class StorageRepository {
 
   suspend fun saveWatWindows(watWindows: List<WatWindow>) {
     val obj = js("{}")
-    console.log("watWindows=%o", watWindows)
     obj.StorageRoot = StorageRoot(windows = watWindows.map { it.toStorageWindow() }).toDynamic()
     chrome.storage.local.set(obj).await()
   }

@@ -83,8 +83,6 @@ class WatRepository {
   }
 
   fun addSystemWindows(systemWindows: List<Window>) {
-    console.log("Current watWindows=%o", _watWindows.value)
-    console.log("addSystemWindows systemWindows=%o", systemWindows)
     _watWindows.value = _watWindows.value + systemWindows
       // Ignore windows that are already bound
       .filterNot {
@@ -121,7 +119,6 @@ class WatRepository {
           treeExpanded = true,
         )
       }
-    console.log("After watWindows=%o", _watWindows.value)
   }
 
   fun addSystemWindow(systemWindow: Window) {
