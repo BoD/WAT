@@ -34,6 +34,7 @@ import chrome.runtime.onMessage
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.web.attributes.autoFocus
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
@@ -205,6 +206,22 @@ class Popup {
                 }
               },
             ) {
+              if (watTab.favIconUrl.isNullOrBlank()) {
+                Span(
+                  attrs = {
+                    classes("favIcon")
+                  },
+                ) {
+                  Text("🌍")
+                }
+              } else {
+                Img(
+                  src = watTab.favIconUrl!!,
+                  attrs = {
+                    classes("favIcon")
+                  },
+                )
+              }
               Span(
                 attrs = {
                   classes("name")
