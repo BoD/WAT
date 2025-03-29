@@ -104,7 +104,8 @@ class ServiceWorker {
     chrome.windows.onFocusChanged.addListener { systemWindowId ->
       GlobalScope.launch {
         // Ignore focusing the popup window
-        val focusedWindow = chrome.windows.get(systemWindowId, QueryOptions(populate = true)).await() ?: return@launch
+        val focusedWindow =
+          runCatching { chrome.windows.get(systemWindowId, QueryOptions(populate = true)).await() }.getOrNull() ?: return@launch
         if (focusedWindow.tabs?.firstOrNull()?.url == popupWindowUrl) return@launch
         watRepository.focusSystemWindow(systemWindowId)
       }
@@ -160,15 +161,8 @@ class ServiceWorker {
   }
 
   private fun registerMessageListener() {
-    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
+    chrome.runtime.onMessage.addListener { msg, _, _ ->
       when (val message = msg.asMessage()) {
-//        GetSavedWindowsMessage -> {
-//          GlobalScope.launch {
-//            val response = PublishWatWindows(watWindowRepository.loadSavedWindows())
-//            sendResponse(Json.encodeToDynamic(response))
-//          }
-//        }
-
         RequestPublishWatWindows -> {
           messenger.sendPublishWatWindows(watRepository.watWindows.value)
         }
@@ -211,7 +205,8 @@ class ServiceWorker {
       }
       // Return true to have the right to respond asynchronously
       // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#sending_an_asynchronous_response_using_sendresponse
-      return@addListener true
+      // We don't need to respond, so we return false
+      return@addListener false
     }
   }
 

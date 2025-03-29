@@ -31,7 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.web.events.SyntheticDragEvent
-import chrome.runtime.onMessage
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -135,9 +134,6 @@ class Popup {
               classes(
                 buildList {
                   add("window")
-//                  if (watWindow.focused) {
-//                    add("focused")
-//                  }
                   if (watWindow.isBound) {
                     add("bound")
                   }
@@ -328,7 +324,7 @@ class Popup {
     get() = dataTransfer?.types?.firstOrNull()?.takeIf { it.startsWith(DATA_PREFIX) }?.removePrefix(DATA_PREFIX)
 
   private fun registerMessageListener() {
-    onMessage.addListener { msg, _, sendResponse ->
+    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
         is PublishWatWindows -> {
           watWindows.value = message.watWindows
@@ -340,7 +336,8 @@ class Popup {
       }
       // Return true to have the right to respond asynchronously
       // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#sending_an_asynchronous_response_using_sendresponse
-      return@addListener true
+      // We don't need to respond, so we return false
+      return@addListener false
     }
   }
 

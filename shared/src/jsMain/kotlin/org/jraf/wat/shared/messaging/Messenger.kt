@@ -27,23 +27,26 @@
 
 package org.jraf.wat.shared.messaging
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.await
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
 import org.jraf.wat.shared.repository.wat.WatWindow
-import kotlin.js.Promise
 import kotlin.uuid.ExperimentalUuidApi
 
 class Messenger {
-  private fun sendMessage(message: Message): Promise<Any?> {
-    return chrome.runtime.sendMessage(Json.encodeToDynamic(message))
+  private fun sendMessage(message: Message) {
+    GlobalScope.launch {
+      // Enclose in a runCatching because sending a message when there is no listener throws an error:
+      // "Could not establish connection. Receiving end does not exist."
+      // We don't care if nobody's listening.
+      runCatching {
+        chrome.runtime.sendMessage(Json.encodeToDynamic(message)).await()
+      }
+    }
   }
-
-//  suspend fun sendGetSavedWindowsMessage(): List<WatWindow> {
-//    val response = sendMessage(GetSavedWindowsMessage).await()
-//    val getSavedWindowsResponse = Json.decodeFromDynamic<PublishWatWindows>(response)
-//    return getSavedWindowsResponse.watWindows
-//  }
 
   fun sendRequestPublishWatWindows() {
     sendMessage(RequestPublishWatWindows)
