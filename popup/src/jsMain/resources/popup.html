@@ -8,10 +8,13 @@
       --windowBgColor: black;
       --boundColor: white;
       --unboundColor: #999;
-      --selectedBgColor: #804400;
+      --focusedWindowBgColor: #282828;
+      --focusedTabBgColor: #484848;
       --selectedFgColor: black;
+      --dropTargetColor: #F80;
+
       --smallWidth: .3rem;
-      --mediumWidth: 1.6rem;
+      --mediumWidth: 1.3rem;
       --borderRadius: .6rem;
     }
 
@@ -24,7 +27,19 @@
       user-select: none;
     }
 
+    ul {
+      padding: 0;
+      position: relative;
+      border-radius: var(--borderRadius);
+      margin: var(--smallWidth);
+    }
+
+    ul.focused {
+      background-color: var(--focusedWindowBgColor);
+    }
+
     li {
+      list-style-type: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -36,10 +51,8 @@
     .window {
       color: var(--unboundColor);
       cursor: pointer;
-      list-style-type: none;
       padding: var(--smallWidth);
-      margin: var(--smallWidth);
-      border-radius: var(--borderRadius);
+      /*margin: var(--smallWidth);*/
     }
 
     .window:hover .actionIcon {
@@ -50,14 +63,19 @@
       color: var(--boundColor);
     }
 
-    .window.focused {
-      background-color: var(--selectedBgColor);
-    }
+    /*.window.focused {*/
+    /*  background-color: var(--selectedBgColor);*/
+    /*}*/
 
     .window .name {
       flex-grow: 1;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .count {
+      margin-left: var(--smallWidth);
+      opacity: .5;
     }
 
     .window .treeExpander {
@@ -81,7 +99,6 @@
     .tab {
       color: var(--unboundColor);
       cursor: pointer;
-      list-style-type: none;
       padding: var(--smallWidth) var(--smallWidth) var(--smallWidth) var(--mediumWidth);
       margin: var(--smallWidth);
       border-radius: var(--borderRadius);
@@ -92,7 +109,7 @@
     }
 
     .tab.active {
-      background-color: var(--selectedBgColor);
+      background-color: var(--focusedTabBgColor);
     }
 
     .tab .name {
@@ -101,10 +118,30 @@
     }
 
     .tab .favIcon {
-      margin-right: calc(var(--smallWidth) * 2);
+      margin-right: calc(var(--smallWidth) * 1.5);
       width: 1rem;
       text-align: center;
       font-size: 130%;
+    }
+
+    .dropTarget {
+      display: none;
+      position: absolute;
+      width: 100%;
+      border: 1px dashed var(--dropTargetColor);
+      margin: 0;
+    }
+
+    .dropTarget.before {
+      top: 0;
+    }
+
+    .dropTarget.after {
+      bottom: 0;
+    }
+
+    .dropTarget.dragOver {
+      display: block;
     }
 
   </style>

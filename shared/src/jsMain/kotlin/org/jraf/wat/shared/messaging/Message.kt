@@ -48,3 +48,10 @@ class UnsaveWatWindowMessage(val watWindowId: String) : Message()
 
 @Serializable
 class SetTreeExpandedMessage(val watWindowId: String, val treeExpanded: Boolean) : Message()
+
+@Serializable
+class ReorderWatWindowsMessage(
+  val toReorderWatWindowId: String,
+  val relativeToWatWindowId: String,
+  val isBefore: Boolean,
+) : Message()

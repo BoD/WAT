@@ -35,7 +35,7 @@ data class StorageRoot(
 @Serializable
 data class StorageWindow(
   val id: String,
-  val systemWindowId: Int,
+  val systemWindowId: Int?,
   val name: String,
   val top: Int,
   val left: Int,

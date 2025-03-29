@@ -50,27 +50,36 @@ class Messenger {
   }
 
   fun sendPublishWatWindows(watWindows: List<WatWindow>) {
-    val message = PublishWatWindows(watWindows)
+    val message = PublishWatWindows(watWindows = watWindows)
     sendMessage(message)
   }
 
   fun sendFocusOrCreateWatWindowMessage(watWindowId: String, tabIndex: Int?) {
-    val message = FocusOrCreateWatWindowMessage(watWindowId, tabIndex)
+    val message = FocusOrCreateWatWindowMessage(watWindowId = watWindowId, tabIndex = tabIndex)
     sendMessage(message)
   }
 
   fun sendSaveWatWindowMessage(watWindowId: String, windowName: String) {
-    val message = SaveWatWindowMessage(watWindowId, windowName)
+    val message = SaveWatWindowMessage(watWindowId = watWindowId, windowName = windowName)
     sendMessage(message)
   }
 
   fun sendUnsaveWatWindowMessage(watWindowId: String) {
-    val message = UnsaveWatWindowMessage(watWindowId)
+    val message = UnsaveWatWindowMessage(watWindowId = watWindowId)
     sendMessage(message)
   }
 
   fun sendSetTreeExpandedMessage(watWindowId: String, treeExpanded: Boolean) {
-    val message = SetTreeExpandedMessage(watWindowId, treeExpanded)
+    val message = SetTreeExpandedMessage(watWindowId = watWindowId, treeExpanded = treeExpanded)
+    sendMessage(message)
+  }
+
+  fun sendReorderWatWindowsMessage(toReorderWatWindowId: String, relativeToWatWindowId: String, isBefore: Boolean) {
+    val message = ReorderWatWindowsMessage(
+      toReorderWatWindowId = toReorderWatWindowId,
+      relativeToWatWindowId = relativeToWatWindowId,
+      isBefore = isBefore,
+    )
     sendMessage(message)
   }
 }

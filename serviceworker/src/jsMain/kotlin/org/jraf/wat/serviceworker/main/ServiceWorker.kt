@@ -37,6 +37,7 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
 import org.jraf.wat.shared.messaging.Messenger
+import org.jraf.wat.shared.messaging.ReorderWatWindowsMessage
 import org.jraf.wat.shared.messaging.RequestPublishWatWindows
 import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
@@ -191,6 +192,16 @@ class ServiceWorker {
         is SetTreeExpandedMessage -> {
           GlobalScope.launch {
             watRepository.setTreeExpanded(watWindowId = message.watWindowId, treeExpanded = message.treeExpanded)
+          }
+        }
+
+        is ReorderWatWindowsMessage -> {
+          GlobalScope.launch {
+            watRepository.reorderWatWindows(
+              toReorderWatWindowId = message.toReorderWatWindowId,
+              relativeToWatWindowId = message.relativeToWatWindowId,
+              isBefore = message.isBefore,
+            )
           }
         }
 

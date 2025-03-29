@@ -231,4 +231,20 @@ class WatRepository {
     }
     saveWindows()
   }
+
+  suspend fun reorderWatWindows(toReorderWatWindowId: String, relativeToWatWindowId: String, isBefore: Boolean) {
+    val toReorderWatWindow = getWindow(toReorderWatWindowId) ?: return
+    val relativeToWatWindow = getWindow(relativeToWatWindowId) ?: return
+    if (toReorderWatWindow == relativeToWatWindow) return
+    _watWindows.value = _watWindows.value.toMutableList().apply {
+      remove(toReorderWatWindow)
+      val index = indexOf(relativeToWatWindow)
+      if (isBefore) {
+        add(index, toReorderWatWindow)
+      } else {
+        add(index + 1, toReorderWatWindow)
+      }
+    }
+    saveWindows()
+  }
 }

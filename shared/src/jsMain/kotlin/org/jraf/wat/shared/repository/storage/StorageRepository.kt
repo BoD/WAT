@@ -98,7 +98,7 @@ private fun StorageTab.toWatTab(): WatTab {
 private fun WatWindow.toStorageWindow(): StorageWindow {
   return StorageWindow(
     id = id,
-    systemWindowId = systemWindowId!!,
+    systemWindowId = systemWindowId,
     name = name,
     top = top,
     left = left,
