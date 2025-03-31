@@ -10,8 +10,8 @@ That's it!
 
 ## Get it
 
-- Chrome: [Chrome Web Store](https://chrome.google.com/webstore/detail/wat-windows-and-tabs/kkjgjjgjjgjgjgjgjgjgjgjgjgjg)
-- Firefox: [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/wat-windows-and-tabs/) (*).
+- Chrome: [Chrome Web Store](https://chromewebstore.google.com/detail/wat/fdpacoplkcilgncmbfakgjddjiekfdmp)
+- Firefox: [Firefox Add-ons](TODO)
 
 ## Acknowledgements
 
