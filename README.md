@@ -11,7 +11,7 @@ That's it!
 ## Get it
 
 - Chrome: [Chrome Web Store](https://chromewebstore.google.com/detail/wat/fdpacoplkcilgncmbfakgjddjiekfdmp)
-- Firefox: [Firefox Add-ons](TODO)
+- Firefox: [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/wat/)
 
 ## Acknowledgements
 
