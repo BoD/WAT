@@ -32,10 +32,10 @@ import org.jraf.wat.shared.model.WatWindow
 sealed class Message
 
 @Serializable
-data object RequestPublishWatWindows : Message()
+data object RequestPublishWatWindowsMessage : Message()
 
 @Serializable
-class PublishWatWindows(val watWindows: List<WatWindow>) : Message()
+class PublishWatWindowsMessage(val watWindows: List<WatWindow>) : Message()
 
 @Serializable
 class FocusOrCreateWatWindowMessage(val watWindowId: String, val tabIndex: Int?) : Message()
@@ -55,3 +55,9 @@ class ReorderWatWindowsMessage(
   val relativeToWatWindowId: String,
   val isBefore: Boolean,
 ) : Message()
+
+@Serializable
+data object GetExportMessage : Message()
+
+@Serializable
+class ImportMessage(val importJsonString: String) : Message()

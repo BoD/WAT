@@ -54,9 +54,11 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
 import org.jraf.wat.serviceworker.repository.wat.WatRepository
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
+import org.jraf.wat.shared.messaging.GetExportMessage
+import org.jraf.wat.shared.messaging.ImportMessage
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.ReorderWatWindowsMessage
-import org.jraf.wat.shared.messaging.RequestPublishWatWindows
+import org.jraf.wat.shared.messaging.RequestPublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
@@ -80,7 +82,7 @@ class ServiceWorker {
 
       launch {
         watRepository.watWindows.collect {
-          messenger.sendPublishWatWindows(it)
+          messenger.publishWatWindows(it)
         }
       }
 
@@ -178,10 +180,10 @@ class ServiceWorker {
   }
 
   private fun registerMessageListener() {
-    onMessage.addListener { msg, _, _ ->
+    onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
-        RequestPublishWatWindows -> {
-          messenger.sendPublishWatWindows(watRepository.watWindows.value)
+        RequestPublishWatWindowsMessage -> {
+          messenger.publishWatWindows(watRepository.watWindows.value)
         }
 
         is FocusOrCreateWatWindowMessage -> {
@@ -216,14 +218,24 @@ class ServiceWorker {
           }
         }
 
+        is GetExportMessage -> {
+          sendResponse(watRepository.getExport())
+        }
+
+        is ImportMessage -> {
+          GlobalScope.launch {
+            val success = watRepository.import(message.importJsonString)
+            sendResponse(success)
+          }
+        }
+
         else -> {
           // Ignore
         }
       }
       // Return true to have the right to respond asynchronously
       // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#sending_an_asynchronous_response_using_sendresponse
-      // We don't need to respond, so we return false
-      return@addListener false
+      return@addListener true
     }
   }
 
@@ -242,9 +254,23 @@ class ServiceWorker {
     } else {
       watWindowIdToBind = watWindowId
       tabIndexToActivate = tabIndex
+
+      // In Chrome window is not defined in the service worker.
+      val isFirefox = jsTypeOf(window) != "undefined"
+
       create(
         CreateData(
-          url = watWindow.tabs.map { it.url }.toTypedArray(),
+          url = watWindow.tabs
+            .map { it.url }
+            .let {
+              if (isFirefox) {
+                // Firefox refuses to open URLs other than http(s)
+                it.filter { it.startsWith("http://") || it.startsWith("https://") }
+              } else {
+                it
+              }
+            }
+            .toTypedArray(),
           top = watWindow.top,
           left = watWindow.left,
           width = watWindow.width,

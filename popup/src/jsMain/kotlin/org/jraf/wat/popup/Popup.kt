@@ -50,7 +50,7 @@ import org.jetbrains.compose.web.dom.TextInput
 import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
 import org.jraf.wat.shared.messaging.Messenger
-import org.jraf.wat.shared.messaging.PublishWatWindows
+import org.jraf.wat.shared.messaging.PublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatWindow
 import org.w3c.dom.HTMLDialogElement
@@ -63,7 +63,7 @@ class Popup {
   fun start() {
     window.resizeTo(window.outerWidth, window.screen.availHeight)
     registerMessageListener()
-    messenger.sendRequestPublishWatWindows()
+    messenger.requestPublishWatWindows()
 
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
@@ -125,7 +125,7 @@ class Popup {
             val dropTargetAfter = document.getElementById("dropTarget-after-${watWindow.id}")
             dropTargetAfter?.classList?.remove("dragOver")
             val isBefore = watWindows.indexOfFirst { it.id == watWindow.id } < watWindows.indexOfFirst { it.id == draggedWatWindowId }
-            messenger.sendReorderWatWindowsMessage(
+            messenger.reorderWatWindows(
               toReorderWatWindowId = draggedWatWindowId,
               relativeToWatWindowId = watWindow.id,
               isBefore = isBefore,
@@ -158,7 +158,7 @@ class Popup {
             attrs = {
               classes("treeExpander")
               onClick {
-                messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
               }
             },
           ) {
@@ -180,7 +180,7 @@ class Popup {
               onKeyUp {
                 when (it.key) {
                   "Enter" -> {
-                    messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+                    messenger.saveWatWindow(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
                     watWindowIdBeingEdited = null
                     watWindowNameBeingEdited = null
                   }
@@ -197,10 +197,10 @@ class Popup {
               attrs = {
                 classes("name")
                 onClick {
-                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
+                  messenger.focusOrCreateWatWindow(watWindowId = watWindow.id, tabIndex = null)
                 }
                 onDoubleClick {
-                  messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                  messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
                 }
               },
             ) {
@@ -230,7 +230,7 @@ class Popup {
             },
           ) {
             if (watWindowIdBeingEdited != null) {
-              messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+              messenger.saveWatWindow(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
               watWindowIdBeingEdited = null
               watWindowNameBeingEdited = null
             } else {
@@ -243,7 +243,7 @@ class Popup {
           // Also don't show it if the window is being edited, because it would be confusing
           if (watWindow.isSaved && watWindow.isBound && watWindowIdBeingEdited == null) {
             ActionIcon("🗑") {
-              messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+              messenger.unsaveWatWindow(watWindowId = watWindow.id)
             }
           }
 
@@ -280,7 +280,7 @@ class Popup {
                   },
                 )
                 onClick {
-                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
+                  messenger.focusOrCreateWatWindow(watWindowId = watWindow.id, tabIndex = i)
                 }
               },
             ) {
@@ -350,7 +350,9 @@ class Popup {
         attrs = {
           onClick {
             it.stopPropagation()
-            console.log("Import")
+            GlobalScope.launch {
+              messenger.import(navigator.clipboard.readText().await())
+            }
           }
         },
       ) {
@@ -360,9 +362,8 @@ class Popup {
         attrs = {
           onClick {
             it.stopPropagation()
-            console.log("Export")
             GlobalScope.launch {
-              navigator.clipboard.writeText("Your WAT data").await()
+              navigator.clipboard.writeText(messenger.getExport()).await()
             }
           }
         },
@@ -378,7 +379,7 @@ class Popup {
   private fun registerMessageListener() {
     chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
-        is PublishWatWindows -> {
+        is PublishWatWindowsMessage -> {
           watWindows.value = message.watWindows
         }
 
