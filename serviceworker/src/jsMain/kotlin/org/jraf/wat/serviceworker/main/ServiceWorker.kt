@@ -107,7 +107,7 @@ class ServiceWorker {
         val focusedWindow =
           runCatching { chrome.windows.get(systemWindowId, QueryOptions(populate = true)).await() }.getOrNull() ?: return@launch
         if (focusedWindow.tabs?.firstOrNull()?.url == popupWindowUrl) return@launch
-        watRepository.focusSystemWindow(systemWindowId)
+        updateWindowRepository()
       }
     }
     // Doesn't exist in Firefox

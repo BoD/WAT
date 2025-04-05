@@ -12,6 +12,8 @@
       --focusedTabBgColor: #484848;
       --selectedFgColor: black;
       --dropTargetColor: #F80;
+      --menuBorderColor: #F80;
+      --menuItemColor: white;
 
       --smallWidth: .3rem;
       --mediumWidth: 1.3rem;
@@ -52,7 +54,6 @@
       color: var(--unboundColor);
       cursor: pointer;
       padding: var(--smallWidth);
-      /*margin: var(--smallWidth);*/
     }
 
     .window:hover .actionIcon {
@@ -142,6 +143,37 @@
 
     .dropTarget.dragOver {
       display: block;
+    }
+
+    .menu {
+      position: absolute;
+      top: 2rem;
+      left: unset;
+      right: 0;
+      background-color: var(--windowBgColor);
+      border: 1px solid var(--menuBorderColor);
+      border-radius: var(--borderRadius);
+      margin: var(--smallWidth);
+      padding: var(--smallWidth);
+      outline: none;
+    }
+
+    dialog::backdrop {
+      backdrop-filter: blur(0.1rem);
+    }
+
+    .visible {
+      display: block;
+    }
+
+    .menu li {
+      color: var(--menuItemColor);
+      padding: var(--smallWidth) var(--mediumWidth);
+      cursor: pointer;
+    }
+
+    .menu li:hover {
+      background-color: var(--focusedTabBgColor);
     }
 
   </style>

@@ -25,12 +25,14 @@
 
 package org.jraf.wat.popup
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.web.events.SyntheticDragEvent
+import androidx.compose.web.events.SyntheticMouseEvent
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +50,7 @@ import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindows
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.repository.wat.WatWindow
+import org.w3c.dom.HTMLDialogElement
 
 class Popup {
   private val messenger = Messenger()
@@ -61,261 +64,304 @@ class Popup {
 
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
-      var watWindowIdBeingEdited: String? by remember { mutableStateOf(null) }
-      var watWindowNameBeingEdited: String? by remember { mutableStateOf(null) }
+      WindowList(watWindows)
+      SettingsDialog()
+    }
+  }
 
-      for (watWindow in watWindows) {
-        Ul(
+  @Composable
+  private fun WindowList(watWindows: List<WatWindow>) {
+    var watWindowIdBeingEdited: String? by remember { mutableStateOf(null) }
+    var watWindowNameBeingEdited: String? by remember { mutableStateOf(null) }
+
+    for ((i, watWindow) in watWindows.withIndex()) {
+      Ul(
+        attrs = {
+          classes(
+            buildList {
+              if (watWindow.focused) {
+                add("focused")
+              }
+            },
+          )
+          draggable(Draggable.True)
+          onDragStart { e ->
+            // Hack: we set the id inside the mime type so that we can retrieve it in onDragOver
+            e.dataTransfer!!.setData("$DATA_PREFIX${watWindow.id}", watWindow.id)
+          }
+          onDragOver { e ->
+            val draggedWatWindowId = e.watWindowId ?: return@onDragOver
+            if (draggedWatWindowId == watWindow.id) return@onDragOver
+            e.preventDefault()
+            e.dataTransfer!!.dropEffect = "move"
+            // Make the drop target visible
+            val isBefore = watWindows.indexOfFirst { it.id == watWindow.id } < watWindows.indexOfFirst { it.id == draggedWatWindowId }
+            val dropTargetId = if (isBefore) {
+              "dropTarget-before-${watWindow.id}"
+            } else {
+              "dropTarget-after-${watWindow.id}"
+            }
+            val dropTarget = document.getElementById(dropTargetId) ?: return@onDragOver
+            dropTarget.classList.add("dragOver")
+          }
+          onDragLeave { e ->
+            e.preventDefault()
+            // Make the drop target invisible
+            val dropTargetBefore = document.getElementById("dropTarget-before-${watWindow.id}")
+            dropTargetBefore?.classList?.remove("dragOver")
+            val dropTargetAfter = document.getElementById("dropTarget-after-${watWindow.id}")
+            dropTargetAfter?.classList?.remove("dragOver")
+          }
+          onDrop { e ->
+            val draggedWatWindowId = e.watWindowId ?: return@onDrop
+            if (draggedWatWindowId == watWindow.id) return@onDrop
+            e.preventDefault()
+            // Make the drop target invisible
+            val dropTargetBefore = document.getElementById("dropTarget-before-${watWindow.id}")
+            dropTargetBefore?.classList?.remove("dragOver")
+            val dropTargetAfter = document.getElementById("dropTarget-after-${watWindow.id}")
+            dropTargetAfter?.classList?.remove("dragOver")
+            val isBefore = watWindows.indexOfFirst { it.id == watWindow.id } < watWindows.indexOfFirst { it.id == draggedWatWindowId }
+            messenger.sendReorderWatWindowsMessage(
+              toReorderWatWindowId = draggedWatWindowId,
+              relativeToWatWindowId = watWindow.id,
+              isBefore = isBefore,
+            )
+          }
+        },
+      ) {
+        // Drop target before
+        Hr(
+          attrs = {
+            id("dropTarget-before-${watWindow.id}")
+            classes("dropTarget", "before")
+          },
+        )
+
+        // Window name
+        Li(
           attrs = {
             classes(
               buildList {
-                if (watWindow.focused) {
-                  add("focused")
+                add("window")
+                if (watWindow.isBound) {
+                  add("bound")
                 }
               },
             )
-            draggable(Draggable.True)
-            onDragStart { e ->
-              // Hack: we set the id inside the mime type so that we can retrieve it in onDragOver
-              e.dataTransfer!!.setData("$DATA_PREFIX${watWindow.id}", watWindow.id)
-            }
-            onDragOver { e ->
-              val draggedWatWindowId = e.watWindowId ?: return@onDragOver
-              if (draggedWatWindowId == watWindow.id) return@onDragOver
-              e.preventDefault()
-              e.dataTransfer!!.dropEffect = "move"
-              // Make the drop target visible
-              val isBefore = watWindows.indexOfFirst { it.id == watWindow.id } < watWindows.indexOfFirst { it.id == draggedWatWindowId }
-              val dropTargetId = if (isBefore) {
-                "dropTarget-before-${watWindow.id}"
-              } else {
-                "dropTarget-after-${watWindow.id}"
-              }
-              val dropTarget = document.getElementById(dropTargetId) ?: return@onDragOver
-              dropTarget.classList.add("dragOver")
-            }
-            onDragLeave { e ->
-              e.preventDefault()
-              // Make the drop target invisible
-              val dropTargetBefore = document.getElementById("dropTarget-before-${watWindow.id}")
-              dropTargetBefore?.classList?.remove("dragOver")
-              val dropTargetAfter = document.getElementById("dropTarget-after-${watWindow.id}")
-              dropTargetAfter?.classList?.remove("dragOver")
-            }
-            onDrop { e ->
-              val draggedWatWindowId = e.watWindowId ?: return@onDrop
-              if (draggedWatWindowId == watWindow.id) return@onDrop
-              e.preventDefault()
-              // Make the drop target invisible
-              val dropTargetBefore = document.getElementById("dropTarget-before-${watWindow.id}")
-              dropTargetBefore?.classList?.remove("dragOver")
-              val dropTargetAfter = document.getElementById("dropTarget-after-${watWindow.id}")
-              dropTargetAfter?.classList?.remove("dragOver")
-              val isBefore = watWindows.indexOfFirst { it.id == watWindow.id } < watWindows.indexOfFirst { it.id == draggedWatWindowId }
-              messenger.sendReorderWatWindowsMessage(
-                toReorderWatWindowId = draggedWatWindowId,
-                relativeToWatWindowId = watWindow.id,
-                isBefore = isBefore,
-              )
-            }
           },
         ) {
-          // Drop target before
-          Hr(
+          Span(
             attrs = {
-              id("dropTarget-before-${watWindow.id}")
-              classes("dropTarget", "before")
-            },
-          )
-
-          // Window name
-          Li(
-            attrs = {
-              classes(
-                buildList {
-                  add("window")
-                  if (watWindow.isBound) {
-                    add("bound")
-                  }
-                },
-              )
+              classes("treeExpander")
+              onClick {
+                messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+              }
             },
           ) {
+            Text(
+              if (watWindow.treeExpanded) {
+                "▾"
+              } else {
+                "▸"
+              },
+            )
+          }
+          if (watWindow.id == watWindowIdBeingEdited) {
+            TextInput(
+              value = watWindowNameBeingEdited!!,
+            ) {
+              classes("name")
+              autoFocus()
+              onInput { watWindowNameBeingEdited = it.value }
+              onKeyUp {
+                when (it.key) {
+                  "Enter" -> {
+                    messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  }
+
+                  "Escape" -> {
+                    watWindowIdBeingEdited = null
+                    watWindowNameBeingEdited = null
+                  }
+                }
+              }
+            }
+          } else {
             Span(
               attrs = {
-                classes("treeExpander")
+                classes("name")
                 onClick {
+                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
+                }
+                onDoubleClick {
                   messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
                 }
               },
             ) {
-              Text(
-                if (watWindow.treeExpanded) {
-                  "▾"
-                } else {
-                  "▸"
-                },
-              )
-            }
-            if (watWindow.id == watWindowIdBeingEdited) {
-              TextInput(
-                value = watWindowNameBeingEdited!!,
-              ) {
-                classes("name")
-                autoFocus()
-                onInput { watWindowNameBeingEdited = it.value }
-                onKeyUp {
-                  when (it.key) {
-                    "Enter" -> {
-                      messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
-                      watWindowIdBeingEdited = null
-                      watWindowNameBeingEdited = null
-                    }
+              Text(watWindow.name)
+              if (!watWindow.isSaved) {
+                Text(" *")
+              }
 
-                    "Escape" -> {
-                      watWindowIdBeingEdited = null
-                      watWindowNameBeingEdited = null
-                    }
-                  }
+              if (!watWindow.treeExpanded) {
+                Span(
+                  attrs = {
+                    classes("count")
+                  },
+                ) {
+                  Text("${watWindow.tabs.size}")
                 }
               }
+            }
+          }
+
+          // Actions
+          ActionIcon(
+            if (watWindow.isSaved) {
+              "✏️"
             } else {
+              "💾"
+            },
+          ) {
+            if (watWindowIdBeingEdited != null) {
+              messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
+              watWindowIdBeingEdited = null
+              watWindowNameBeingEdited = null
+            } else {
+              watWindowIdBeingEdited = watWindow.id
+              watWindowNameBeingEdited = watWindow.name
+            }
+          }
+
+          // Only show the unsave icon if the window is bound, because otherwise it's dangerous
+          // Also don't show it if the window is being edited, because it would be confusing
+          if (watWindow.isSaved && watWindow.isBound && watWindowIdBeingEdited == null) {
+            ActionIcon("🗑") {
+              messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
+            }
+          }
+
+          // Add Settings action on the first window only
+          // Also don't show it if the window is being edited, because it would be confusing
+          if (i == 0 && watWindowIdBeingEdited == null) {
+            Span(
+              attrs = {
+                classes("actionIcon")
+                onClick {
+                  (document.getElementById("settingsDialog") as? HTMLDialogElement)?.showModal()
+                }
+              },
+            ) {
+              Text("⚙️")
+            }
+          }
+        }
+
+        // Tabs
+        if (watWindow.treeExpanded) {
+          for ((i, watTab) in watWindow.tabs.withIndex()) {
+            Li(
+              attrs = {
+                classes(
+                  buildList {
+                    add("tab")
+                    if (watWindow.focused && watTab.active) {
+                      add("active")
+                    }
+                    if (watWindow.isBound) {
+                      add("bound")
+                    }
+                  },
+                )
+                onClick {
+                  messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
+                }
+              },
+            ) {
+              if (watTab.favIconUrl.isNullOrBlank()) {
+                Span(
+                  attrs = {
+                    classes("favIcon")
+                  },
+                ) {
+                  Text("🌍")
+                }
+              } else {
+                Img(
+                  src = watTab.favIconUrl!!,
+                  attrs = {
+                    classes("favIcon")
+                  },
+                )
+              }
               Span(
                 attrs = {
                   classes("name")
-                  onClick {
-                    messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = null)
-                  }
-                  onDoubleClick {
-                    messenger.sendSetTreeExpandedMessage(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
-                  }
                 },
               ) {
-                Text(watWindow.name)
-                if (!watWindow.isSaved) {
-                  Text(" *")
-                }
-
-                if (!watWindow.treeExpanded) {
-                  Span(
-                    attrs = {
-                      classes("count")
-                    },
-                  ) {
-                    Text("${watWindow.tabs.size}")
-                  }
-                }
-              }
-            }
-            if (watWindow.isSaved) {
-              Span(
-                attrs = {
-                  classes("actionIcon")
-                  onClick {
-                    if (watWindowIdBeingEdited != null) {
-                      messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
-                      watWindowIdBeingEdited = null
-                      watWindowNameBeingEdited = null
-                    } else {
-                      watWindowIdBeingEdited = watWindow.id
-                      watWindowNameBeingEdited = watWindow.name
-                    }
-                  }
-                },
-              ) {
-                Text(" ✏️")
-              }
-              // Only show the unsave icon if the window is bound, because otherwise it's dangerous
-              // Also don't show it if the window is being edited, because it would be confusing
-              if (watWindow.isBound && watWindowIdBeingEdited == null) {
-                Span(
-                  attrs = {
-                    classes("actionIcon")
-                    onClick {
-                      messenger.sendUnsaveWatWindowMessage(watWindowId = watWindow.id)
-                    }
-                  },
-                ) {
-                  Text(" 🗑")
-                }
-              }
-            } else {
-              Span(
-                attrs = {
-                  classes("actionIcon")
-                  onClick {
-                    if (watWindowIdBeingEdited != null) {
-                      messenger.sendSaveWatWindowMessage(watWindowId = watWindowIdBeingEdited!!, windowName = watWindowNameBeingEdited!!)
-                      watWindowIdBeingEdited = null
-                      watWindowNameBeingEdited = null
-                    } else {
-                      watWindowIdBeingEdited = watWindow.id
-                      watWindowNameBeingEdited = watWindow.name
-                    }
-                  }
-                },
-              ) {
-                Text(" 💾")
+                Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
               }
             }
           }
-
-          // Tabs
-          if (watWindow.treeExpanded) {
-            for ((i, watTab) in watWindow.tabs.withIndex()) {
-              Li(
-                attrs = {
-                  classes(
-                    buildList {
-                      add("tab")
-                      if (watWindow.focused && watTab.active) {
-                        add("active")
-                      }
-                      if (watWindow.isBound) {
-                        add("bound")
-                      }
-                    },
-                  )
-                  onClick {
-                    messenger.sendFocusOrCreateWatWindowMessage(watWindowId = watWindow.id, tabIndex = i)
-                  }
-                },
-              ) {
-                if (watTab.favIconUrl.isNullOrBlank()) {
-                  Span(
-                    attrs = {
-                      classes("favIcon")
-                    },
-                  ) {
-                    Text("🌍")
-                  }
-                } else {
-                  Img(
-                    src = watTab.favIconUrl!!,
-                    attrs = {
-                      classes("favIcon")
-                    },
-                  )
-                }
-                Span(
-                  attrs = {
-                    classes("name")
-                  },
-                ) {
-                  Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
-                }
-              }
-            }
-          }
-
-          // Drop target after
-          Hr(
-            attrs = {
-              id("dropTarget-after-${watWindow.id}")
-              classes("dropTarget", "after")
-            },
-          )
         }
+
+        // Drop target after
+        Hr(
+          attrs = {
+            id("dropTarget-after-${watWindow.id}")
+            classes("dropTarget", "after")
+          },
+        )
+      }
+    }
+  }
+
+  @Composable
+  private fun ActionIcon(icon: String, onClick: (SyntheticMouseEvent) -> Unit) {
+    Span(
+      attrs = {
+        classes("actionIcon")
+        onClick(onClick)
+      },
+    ) {
+      Text(icon)
+    }
+  }
+
+  @Composable
+  private fun SettingsDialog() {
+    Dialog(
+      attrs = {
+        id("settingsDialog")
+        classes("menu")
+        onClick {
+          // Close the dialog when clicking anywhere
+          (document.getElementById("settingsDialog") as? HTMLDialogElement)?.close()
+        }
+      },
+    ) {
+      Li(
+        attrs = {
+          onClick {
+            it.stopPropagation()
+            console.log("Import")
+          }
+        },
+      ) {
+        Text("Import...")
+      }
+      Li(
+        attrs = {
+          onClick {
+            it.stopPropagation()
+            console.log("Export")
+          }
+        },
+      ) {
+        Text("Export...")
       }
     }
   }
