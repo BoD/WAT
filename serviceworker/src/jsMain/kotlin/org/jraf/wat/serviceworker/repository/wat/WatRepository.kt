@@ -23,12 +23,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.repository.wat
+package org.jraf.wat.serviceworker.repository.wat
 
 import chrome.windows.Window
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.jraf.wat.shared.repository.storage.StorageRepository
+import org.jraf.wat.serviceworker.repository.storage.StorageRepository
+import org.jraf.wat.shared.model.WatTab
+import org.jraf.wat.shared.model.WatWindow
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

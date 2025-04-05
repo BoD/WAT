@@ -23,22 +23,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.repository.storage
+package org.jraf.wat.serviceworker.repository.storage
 
+import chrome.storage.local
 import chrome.windows.QueryOptions
 import chrome.windows.WindowType
+import chrome.windows.getAll
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.wat.shared.repository.wat.WatTab
-import org.jraf.wat.shared.repository.wat.WatWindow
+import org.jraf.wat.shared.model.WatTab
+import org.jraf.wat.shared.model.WatWindow
 
 class StorageRepository {
   suspend fun loadWatWindowsFromStorageMinusSystemWindows(): List<WatWindow> {
     val watWindowsFromStorage = loadWatWindowsFromStorage() ?: return emptyList()
     // Remove any saved system window ids that don't currently exist
-    val systemWindowIds = chrome.windows.getAll(QueryOptions(populate = false, windowTypes = arrayOf(WindowType.normal))).await()
+    val systemWindowIds = getAll(QueryOptions(populate = false, windowTypes = arrayOf(WindowType.normal))).await()
       .mapNotNull { it.id }
     return watWindowsFromStorage.map {
       if (!systemWindowIds.contains(it.systemWindowId)) {
@@ -50,7 +52,7 @@ class StorageRepository {
   }
 
   private suspend fun loadWatWindowsFromStorage(): List<WatWindow>? {
-    val items = chrome.storage.local.get("StorageRoot").await()
+    val items = local.get("StorageRoot").await()
     val obj = items.StorageRoot
     return if (obj == undefined) {
       null
@@ -65,7 +67,7 @@ class StorageRepository {
   suspend fun saveWatWindows(watWindows: List<WatWindow>) {
     val obj = js("{}")
     obj.StorageRoot = StorageRoot(windows = watWindows.map { it.toStorageWindow() }).toDynamic()
-    chrome.storage.local.set(obj).await()
+    local.set(obj).await()
   }
 }
 

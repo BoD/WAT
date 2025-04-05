@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.wat.shared.repository.wat.WatWindow
+import org.jraf.wat.shared.model.WatWindow
 import kotlin.uuid.ExperimentalUuidApi
 
 class Messenger {

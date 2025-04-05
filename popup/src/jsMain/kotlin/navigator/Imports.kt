@@ -23,35 +23,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.messaging
+@file:JsQualifier("navigator")
 
-import kotlinx.serialization.Serializable
-import org.jraf.wat.shared.model.WatWindow
+package navigator
 
-@Serializable
-sealed class Message
+import org.w3c.dom.clipboard.Clipboard
 
-@Serializable
-data object RequestPublishWatWindows : Message()
-
-@Serializable
-class PublishWatWindows(val watWindows: List<WatWindow>) : Message()
-
-@Serializable
-class FocusOrCreateWatWindowMessage(val watWindowId: String, val tabIndex: Int?) : Message()
-
-@Serializable
-class SaveWatWindowMessage(val watWindowId: String, val windowName: String) : Message()
-
-@Serializable
-class UnsaveWatWindowMessage(val watWindowId: String) : Message()
-
-@Serializable
-class SetTreeExpandedMessage(val watWindowId: String, val treeExpanded: Boolean) : Message()
-
-@Serializable
-class ReorderWatWindowsMessage(
-  val toReorderWatWindowId: String,
-  val relativeToWatWindowId: String,
-  val isBefore: Boolean,
-) : Message()
+external val clipboard: Clipboard

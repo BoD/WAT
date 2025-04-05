@@ -35,7 +35,10 @@ import androidx.compose.web.events.SyntheticDragEvent
 import androidx.compose.web.events.SyntheticMouseEvent
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.await
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.Draggable
 import org.jetbrains.compose.web.attributes.autoFocus
 import org.jetbrains.compose.web.dom.Hr
@@ -49,7 +52,7 @@ import org.jetbrains.compose.web.renderComposable
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindows
 import org.jraf.wat.shared.messaging.asMessage
-import org.jraf.wat.shared.repository.wat.WatWindow
+import org.jraf.wat.shared.model.WatWindow
 import org.w3c.dom.HTMLDialogElement
 
 class Popup {
@@ -358,6 +361,9 @@ class Popup {
           onClick {
             it.stopPropagation()
             console.log("Export")
+            GlobalScope.launch {
+              navigator.clipboard.writeText("Your WAT data").await()
+            }
           }
         },
       ) {

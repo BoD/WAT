@@ -23,31 +23,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.repository.storage
+package org.jraf.wat.shared.model
 
 import kotlinx.serialization.Serializable
 
+// These are serializable because they're passed around via messages
 @Serializable
-data class StorageRoot(
-  val windows: List<StorageWindow>,
-)
-
-@Serializable
-data class StorageWindow(
+data class WatWindow(
   val id: String,
   val systemWindowId: Int?,
   val name: String,
+  val isSaved: Boolean,
+  val focused: Boolean,
   val top: Int,
   val left: Int,
   val width: Int,
   val height: Int,
-  val tabs: List<StorageTab>,
+  val tabs: List<WatTab>,
   val treeExpanded: Boolean,
-)
+) {
+  val isBound: Boolean
+    get() = systemWindowId != null
+}
 
 @Serializable
-data class StorageTab(
+data class WatTab(
+  val systemTabId: Int?,
   val title: String,
   val url: String,
   val favIconUrl: String?,
+  val active: Boolean,
 )
