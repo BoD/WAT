@@ -26,6 +26,7 @@
 package org.jraf.wat.popup
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +38,12 @@ import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.Draggable
 import org.jetbrains.compose.web.attributes.autoFocus
+import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Hr
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Li
@@ -54,11 +57,13 @@ import org.jraf.wat.shared.messaging.PublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatWindow
 import org.w3c.dom.HTMLDialogElement
+import kotlin.js.Date
 
 class Popup {
   private val messenger = Messenger()
 
   private val watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
+  private val snackBarSpec: MutableStateFlow<SnackBarSpec?> = MutableStateFlow(null)
 
   fun start() {
     window.resizeTo(window.outerWidth, window.screen.availHeight)
@@ -67,8 +72,12 @@ class Popup {
 
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
+      val snackBarSpec: SnackBarSpec? by snackBarSpec.collectAsState()
       WindowList(watWindows)
       SettingsDialog()
+      if (snackBarSpec != null) {
+        SnackBar(snackBarSpec!!)
+      }
     }
   }
 
@@ -349,9 +358,19 @@ class Popup {
       Li(
         attrs = {
           onClick {
-            it.stopPropagation()
             GlobalScope.launch {
-              messenger.import(navigator.clipboard.readText().await())
+              val ok = messenger.import(navigator.clipboard.readText().await())
+              snackBarSpec.value = if (ok) {
+                SnackBarSpec(
+                  message = "Import successful",
+                  className = "success",
+                )
+              } else {
+                SnackBarSpec(
+                  message = "Import from clipboard failed",
+                  className = "error",
+                )
+              }
             }
           }
         },
@@ -361,15 +380,33 @@ class Popup {
       Li(
         attrs = {
           onClick {
-            it.stopPropagation()
             GlobalScope.launch {
               navigator.clipboard.writeText(messenger.getExport()).await()
+              snackBarSpec.value = SnackBarSpec(
+                message = "Exported to clipboard",
+                className = "success",
+              )
             }
           }
         },
       ) {
         Text("Export...")
       }
+    }
+  }
+
+  @Composable
+  private fun SnackBar(snackBarSpec: SnackBarSpec) {
+    Div(
+      attrs = {
+        classes("snackBar", snackBarSpec.className)
+      },
+    ) {
+      LaunchedEffect(snackBarSpec) {
+        delay(4000)
+        this@Popup.snackBarSpec.value = null
+      }
+      Text(snackBarSpec.message)
     }
   }
 
@@ -396,5 +433,18 @@ class Popup {
 
   companion object {
     const val DATA_PREFIX = "application/wat+"
+  }
+}
+
+private class SnackBarSpec(
+  val message: String,
+  val className: String,
+) {
+  override fun equals(other: Any?): Boolean {
+    return false
+  }
+
+  override fun hashCode(): Int {
+    return Date().getMilliseconds()
   }
 }

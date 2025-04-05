@@ -14,6 +14,9 @@
       --dropTargetColor: #F80;
       --menuBorderColor: #F80;
       --menuItemColor: white;
+      --snackBarTextColor: white;
+      --snackBarSuccessBackgroundColor: #2c662d;
+      --snackBarErrorBackgroundColor: #662c2c;
 
       --smallWidth: .3rem;
       --mediumWidth: 1.3rem;
@@ -162,10 +165,6 @@
       backdrop-filter: blur(0.1rem);
     }
 
-    .visible {
-      display: block;
-    }
-
     .menu li {
       color: var(--menuItemColor);
       padding: var(--smallWidth) var(--mediumWidth);
@@ -174,6 +173,26 @@
 
     .menu li:hover {
       background-color: var(--focusedTabBgColor);
+    }
+
+    .snackBar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      color: var(--snackBarTextColor);
+      padding: calc(var(--smallWidth) * 2);
+      border-radius: var(--borderRadius);
+      margin: var(--smallWidth);
+      box-shadow: 0 0 var(--mediumWidth) var(--smallWidth) black
+    }
+
+    .snackBar.success {
+      background-color: var(--snackBarSuccessBackgroundColor);
+    }
+
+    .snackBar.error {
+      background-color: var(--snackBarErrorBackgroundColor);
     }
 
   </style>
