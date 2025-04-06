@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WAT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "WAT (Windows And Tabs), a windows/tabs/sessions manager",
   "icons": {
     "16": "icons/16x16.png",

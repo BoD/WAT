@@ -60,11 +60,11 @@ tasks.register<Zip>("prodDistZip") {
 // Run `./gradlew devDist`
 // Result is in build/devDist
 
-// For release (Firefox):
+// For release (Firefox self-distribution):
 // Run `./gradlew prodDist`
 // Result is in build/prodDist
 // Then run `web-ext sign --channel unlisted --api-key 'user:xyz' --api-secret 'xyz'
 
-// For release (Chrome):
+// For release (Chrome and Firefox stores):
 // Run `./gradlew prodDistZip`
 // Result is in build/prodDist/wat-x.y.z.zip
