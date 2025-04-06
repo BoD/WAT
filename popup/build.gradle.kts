@@ -8,6 +8,7 @@ kotlin {
   js {
     browser()
     compilerOptions {
+      target.set("es2015")
       optIn.addAll("kotlinx.coroutines.DelicateCoroutinesApi", "kotlinx.serialization.ExperimentalSerializationApi")
     }
     binaries.executable()
