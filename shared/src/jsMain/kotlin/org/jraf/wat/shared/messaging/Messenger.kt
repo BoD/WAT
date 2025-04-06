@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromDynamic
 import kotlinx.serialization.json.encodeToDynamic
-import org.jraf.wat.shared.repository.wat.WatWindow
+import org.jraf.wat.shared.model.WatWindow
 import kotlin.uuid.ExperimentalUuidApi
 
 class Messenger {
@@ -48,42 +48,55 @@ class Messenger {
     }
   }
 
-  fun sendRequestPublishWatWindows() {
-    sendMessage(RequestPublishWatWindows)
+  private suspend fun <T> sendMessageAndWaitForResult(message: Message): T {
+    return chrome.runtime.sendMessage(Json.encodeToDynamic(message)).await().unsafeCast<T>()
   }
 
-  fun sendPublishWatWindows(watWindows: List<WatWindow>) {
-    val message = PublishWatWindows(watWindows = watWindows)
+  fun requestPublishWatWindows() {
+    sendMessage(RequestPublishWatWindowsMessage)
+  }
+
+  fun publishWatWindows(watWindows: List<WatWindow>) {
+    val message = PublishWatWindowsMessage(watWindows = watWindows)
     sendMessage(message)
   }
 
-  fun sendFocusOrCreateWatWindowMessage(watWindowId: String, tabIndex: Int?) {
+  fun focusOrCreateWatWindow(watWindowId: String, tabIndex: Int?) {
     val message = FocusOrCreateWatWindowMessage(watWindowId = watWindowId, tabIndex = tabIndex)
     sendMessage(message)
   }
 
-  fun sendSaveWatWindowMessage(watWindowId: String, windowName: String) {
+  fun saveWatWindow(watWindowId: String, windowName: String) {
     val message = SaveWatWindowMessage(watWindowId = watWindowId, windowName = windowName)
     sendMessage(message)
   }
 
-  fun sendUnsaveWatWindowMessage(watWindowId: String) {
+  fun unsaveWatWindow(watWindowId: String) {
     val message = UnsaveWatWindowMessage(watWindowId = watWindowId)
     sendMessage(message)
   }
 
-  fun sendSetTreeExpandedMessage(watWindowId: String, treeExpanded: Boolean) {
+  fun setTreeExpanded(watWindowId: String, treeExpanded: Boolean) {
     val message = SetTreeExpandedMessage(watWindowId = watWindowId, treeExpanded = treeExpanded)
     sendMessage(message)
   }
 
-  fun sendReorderWatWindowsMessage(toReorderWatWindowId: String, relativeToWatWindowId: String, isBefore: Boolean) {
+  fun reorderWatWindows(toReorderWatWindowId: String, relativeToWatWindowId: String, isBefore: Boolean) {
     val message = ReorderWatWindowsMessage(
       toReorderWatWindowId = toReorderWatWindowId,
       relativeToWatWindowId = relativeToWatWindowId,
       isBefore = isBefore,
     )
     sendMessage(message)
+  }
+
+  suspend fun getExport(): String {
+    return sendMessageAndWaitForResult(GetExportMessage)
+  }
+
+  suspend fun import(importJsonString: String): Boolean {
+    val message = ImportMessage(importJsonString = importJsonString)
+    return sendMessageAndWaitForResult(message)
   }
 }
 

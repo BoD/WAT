@@ -1,5 +1,7 @@
 plugins {
   kotlin("multiplatform")
+  kotlin("plugin.js-plain-objects")
+  kotlin("plugin.serialization")
 }
 
 // Replace the version in the manifest with the version defined in gradle

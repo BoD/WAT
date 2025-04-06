@@ -25,25 +25,44 @@
 
 package org.jraf.wat.serviceworker.main
 
+import chrome.action.onClicked
+import chrome.runtime.getURL
+import chrome.runtime.onMessage
 import chrome.tabs.UpdateProperties
+import chrome.tabs.onActivated
+import chrome.tabs.onAttached
+import chrome.tabs.onDetached
+import chrome.tabs.onMoved
+import chrome.tabs.onReplaced
+import chrome.tabs.onUpdated
+import chrome.tabs.update
 import chrome.windows.CreateData
 import chrome.windows.CreateType
 import chrome.windows.QueryOptions
 import chrome.windows.UpdateInfo
 import chrome.windows.WindowType
+import chrome.windows.create
+import chrome.windows.get
+import chrome.windows.getAll
+import chrome.windows.onBoundsChanged
+import chrome.windows.onCreated
+import chrome.windows.onFocusChanged
+import chrome.windows.onRemoved
 import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
+import org.jraf.wat.serviceworker.repository.wat.WatRepository
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
+import org.jraf.wat.shared.messaging.GetExportMessage
+import org.jraf.wat.shared.messaging.ImportMessage
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.ReorderWatWindowsMessage
-import org.jraf.wat.shared.messaging.RequestPublishWatWindows
+import org.jraf.wat.shared.messaging.RequestPublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
-import org.jraf.wat.shared.repository.wat.WatRepository
 
 class ServiceWorker {
   private val watRepository = WatRepository()
@@ -51,7 +70,7 @@ class ServiceWorker {
   private val messenger = Messenger()
 
   private val popupWindowUrl by lazy {
-    chrome.runtime.getURL("popup.html")
+    getURL("popup.html")
   }
 
   fun start() {
@@ -63,7 +82,7 @@ class ServiceWorker {
 
       launch {
         watRepository.watWindows.collect {
-          messenger.sendPublishWatWindows(it)
+          messenger.publishWatWindows(it)
         }
       }
 
@@ -73,19 +92,19 @@ class ServiceWorker {
 
   private suspend fun initWindowRepository() {
     watRepository.init()
-    val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+    val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
     watRepository.addSystemWindows(windows.toList())
   }
 
   private fun updateWindowRepository() {
     GlobalScope.launch {
-      val windows = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
+      val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
       watRepository.updateWatWindows(windows.toList())
     }
   }
 
   private fun observeWindows() {
-    chrome.windows.onCreated.addListener(
+    onCreated.addListener(
       callback = { window ->
         // Only consider normal windows
         if (window.type != WindowType.normal) return@addListener
@@ -98,22 +117,22 @@ class ServiceWorker {
         }
       },
     )
-    chrome.windows.onRemoved.addListener { systemWindowId ->
+    onRemoved.addListener { systemWindowId ->
       watRepository.unbind(systemWindowId)
     }
-    chrome.windows.onFocusChanged.addListener { systemWindowId ->
+    onFocusChanged.addListener { systemWindowId ->
       GlobalScope.launch {
         // Ignore focusing the popup window
         val focusedWindow =
-          runCatching { chrome.windows.get(systemWindowId, QueryOptions(populate = true)).await() }.getOrNull() ?: return@launch
+          runCatching { get(systemWindowId, QueryOptions(populate = true)).await() }.getOrNull() ?: return@launch
         if (focusedWindow.tabs?.firstOrNull()?.url == popupWindowUrl) return@launch
-        watRepository.focusSystemWindow(systemWindowId)
+        updateWindowRepository()
       }
     }
     // Doesn't exist in Firefox
     @Suppress("SENSELESS_COMPARISON")
-    if (chrome.windows.onBoundsChanged !== undefined) {
-      chrome.windows.onBoundsChanged.addListener {
+    if (onBoundsChanged !== undefined) {
+      onBoundsChanged.addListener {
         updateWindowRepository()
       }
     }
@@ -123,13 +142,13 @@ class ServiceWorker {
     chrome.tabs.onCreated.addListener { tab ->
       updateWindowRepository()
     }
-    chrome.tabs.onUpdated.addListener { tabId, changeInfo, tab ->
+    onUpdated.addListener { tabId, changeInfo, tab ->
       updateWindowRepository()
       if (tabIndexToActivate != null) {
         val systemTabIdToActivate = watRepository.getWatWindowBySystemId(tab.windowId)?.tabs?.getOrNull(tabIndexToActivate!!)?.systemTabId
         if (systemTabIdToActivate != null) {
           GlobalScope.launch {
-            chrome.tabs.update(systemTabIdToActivate, UpdateProperties(active = true)).await()
+            update(systemTabIdToActivate, UpdateProperties(active = true)).await()
             tabIndexToActivate = null
           }
         }
@@ -138,19 +157,19 @@ class ServiceWorker {
     chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
       updateWindowRepository()
     }
-    chrome.tabs.onMoved.addListener { tabId, moveInfo ->
+    onMoved.addListener { tabId, moveInfo ->
       updateWindowRepository()
     }
-    chrome.tabs.onAttached.addListener { tabId, attachInfo ->
+    onAttached.addListener { tabId, attachInfo ->
       updateWindowRepository()
     }
-    chrome.tabs.onDetached.addListener { tabId, detachInfo ->
+    onDetached.addListener { tabId, detachInfo ->
       updateWindowRepository()
     }
-    chrome.tabs.onReplaced.addListener { addedTabId, removedTabId ->
+    onReplaced.addListener { addedTabId, removedTabId ->
       updateWindowRepository()
     }
-    chrome.tabs.onActivated.addListener { activeInfo ->
+    onActivated.addListener { activeInfo ->
       GlobalScope.launch {
         // Ignore focusing the popup window
         val tab = chrome.tabs.get(activeInfo.tabId).await() ?: return@launch
@@ -161,10 +180,10 @@ class ServiceWorker {
   }
 
   private fun registerMessageListener() {
-    chrome.runtime.onMessage.addListener { msg, _, _ ->
+    onMessage.addListener { msg, _, sendResponse ->
       when (val message = msg.asMessage()) {
-        RequestPublishWatWindows -> {
-          messenger.sendPublishWatWindows(watRepository.watWindows.value)
+        RequestPublishWatWindowsMessage -> {
+          messenger.publishWatWindows(watRepository.watWindows.value)
         }
 
         is FocusOrCreateWatWindowMessage -> {
@@ -199,14 +218,24 @@ class ServiceWorker {
           }
         }
 
+        is GetExportMessage -> {
+          sendResponse(watRepository.getExport())
+        }
+
+        is ImportMessage -> {
+          GlobalScope.launch {
+            val success = watRepository.import(message.importJsonString)
+            sendResponse(success)
+          }
+        }
+
         else -> {
           // Ignore
         }
       }
       // Return true to have the right to respond asynchronously
       // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#sending_an_asynchronous_response_using_sendresponse
-      // We don't need to respond, so we return false
-      return@addListener false
+      return@addListener true
     }
   }
 
@@ -219,15 +248,29 @@ class ServiceWorker {
       GlobalScope.launch {
         chrome.windows.update(watWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
         if (tabIndex != null) {
-          chrome.tabs.update(watWindow.tabs[tabIndex].systemTabId!!, UpdateProperties(active = true)).await()
+          update(watWindow.tabs[tabIndex].systemTabId!!, UpdateProperties(active = true)).await()
         }
       }
     } else {
       watWindowIdToBind = watWindowId
       tabIndexToActivate = tabIndex
-      chrome.windows.create(
+
+      // In Chrome window is not defined in the service worker.
+      val isFirefox = jsTypeOf(window) != "undefined"
+
+      create(
         CreateData(
-          url = watWindow.tabs.map { it.url }.toTypedArray(),
+          url = watWindow.tabs
+            .map { it.url }
+            .let {
+              if (isFirefox) {
+                // Firefox refuses to open URLs other than http(s)
+                it.filter { it.startsWith("http://") || it.startsWith("https://") }
+              } else {
+                it
+              }
+            }
+            .toTypedArray(),
           top = watWindow.top,
           left = watWindow.left,
           width = watWindow.width,
@@ -239,10 +282,10 @@ class ServiceWorker {
 
   private fun setupActionButton() {
     // "action" is the extension's icon in the toolbar
-    chrome.action.onClicked.addListener {
+    onClicked.addListener {
       GlobalScope.launch {
         // If the popup window is already open, focus it, otherwise create it
-        val popupWindow = chrome.windows.getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.popup))).await()
+        val popupWindow = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.popup))).await()
           .firstOrNull { it.tabs?.any { it.url == popupWindowUrl } == true }
         if (popupWindow != null) {
           chrome.windows.update(popupWindow.id!!, UpdateInfo(focused = true))
@@ -255,7 +298,7 @@ class ServiceWorker {
           } else {
             window.screen.availHeight
           }
-          chrome.windows.create(
+          create(
             CreateData(
               url = arrayOf(popupWindowUrl),
               type = CreateType.popup,

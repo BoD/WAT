@@ -23,12 +23,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jraf.wat.shared.repository.wat
+package org.jraf.wat.serviceworker.repository.wat
 
 import chrome.windows.Window
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.jraf.wat.shared.repository.storage.StorageRepository
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.jraf.wat.serviceworker.repository.storage.StorageRepository
+import org.jraf.wat.shared.model.WatTab
+import org.jraf.wat.shared.model.WatWindow
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -246,5 +250,74 @@ class WatRepository {
       }
     }
     saveWindows()
+  }
+
+  @Serializable
+  private class ExportWindow(
+    val name: String,
+    val tabs: List<String>,
+  )
+
+  fun getExport(): String {
+    return Json.encodeToString(
+      _watWindows.value
+        .filter { it.isSaved }
+        .map { window ->
+          ExportWindow(
+            name = window.name,
+            tabs = window.tabs.mapNotNull { tab ->
+              // Exclude special URLs
+              if (tab.url.startsWith("chrome://")) {
+                null
+              } else {
+                tab.url.decodeSuspended()
+              }
+            },
+          )
+        },
+    )
+  }
+
+  suspend fun import(importJsonString: String): Boolean {
+    val exportWindows = try {
+      Json.decodeFromString<List<ExportWindow>>(importJsonString)
+    } catch (e: Exception) {
+      console.warn("Importing failed: %o", e)
+      return false
+    }
+    _watWindows.value = _watWindows.value + exportWindows.map { exportWindow ->
+      WatWindow(
+        id = Uuid.random().toHexString(),
+        name = exportWindow.name,
+        isSaved = true,
+        systemWindowId = null,
+        focused = false,
+        top = 0,
+        left = 320,
+        width = 800,
+        height = 600,
+        tabs = exportWindow.tabs.map { tabUrl ->
+          WatTab(
+            systemTabId = null,
+            title = "",
+            url = tabUrl,
+            favIconUrl = null,
+            active = false,
+          )
+        },
+        treeExpanded = false,
+      )
+    }
+    saveWindows()
+    return true
+  }
+}
+
+private fun String.decodeSuspended(): String {
+  // Special case for the "The Marvellous Suspender" extension (https://chromewebstore.google.com/detail/the-marvellous-suspender/noogafoofpebimajpfpamcfhoaifemoa) - get the actual URL
+  if (this.contains("noogafoofpebimajpfpamcfhoaifemoa")) {
+    return this.substringAfterLast("&uri=")
+  } else {
+    return this
   }
 }

@@ -12,6 +12,11 @@
       --focusedTabBgColor: #484848;
       --selectedFgColor: black;
       --dropTargetColor: #F80;
+      --menuBorderColor: #F80;
+      --menuItemColor: white;
+      --snackBarTextColor: white;
+      --snackBarSuccessBackgroundColor: #2c662d;
+      --snackBarErrorBackgroundColor: #662c2c;
 
       --smallWidth: .3rem;
       --mediumWidth: 1.3rem;
@@ -52,7 +57,6 @@
       color: var(--unboundColor);
       cursor: pointer;
       padding: var(--smallWidth);
-      /*margin: var(--smallWidth);*/
     }
 
     .window:hover .actionIcon {
@@ -142,6 +146,53 @@
 
     .dropTarget.dragOver {
       display: block;
+    }
+
+    .menu {
+      position: absolute;
+      top: 2rem;
+      left: unset;
+      right: 0;
+      background-color: var(--windowBgColor);
+      border: 1px solid var(--menuBorderColor);
+      border-radius: var(--borderRadius);
+      margin: var(--smallWidth);
+      padding: var(--smallWidth);
+      outline: none;
+    }
+
+    dialog::backdrop {
+      backdrop-filter: blur(0.1rem);
+    }
+
+    .menu li {
+      color: var(--menuItemColor);
+      padding: var(--smallWidth) var(--mediumWidth);
+      cursor: pointer;
+    }
+
+    .menu li:hover {
+      background-color: var(--focusedTabBgColor);
+    }
+
+    .snackBar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      color: var(--snackBarTextColor);
+      padding: calc(var(--smallWidth) * 2);
+      border-radius: var(--borderRadius);
+      margin: var(--smallWidth);
+      box-shadow: 0 0 var(--mediumWidth) var(--smallWidth) black
+    }
+
+    .snackBar.success {
+      background-color: var(--snackBarSuccessBackgroundColor);
+    }
+
+    .snackBar.error {
+      background-color: var(--snackBarErrorBackgroundColor);
     }
 
   </style>

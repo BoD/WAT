@@ -4,10 +4,6 @@ plugins {
   kotlin("plugin.serialization")
 }
 
-repositories {
-  mavenCentral()
-}
-
 // Generate a Version.kt file with a constant for the version name
 val generateVersionKtTask = tasks.register("generateVersionKt") {
   val outputDir = layout.buildDirectory.dir("generated/source/kotlin").get().asFile
