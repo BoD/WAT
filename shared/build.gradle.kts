@@ -28,12 +28,14 @@ kotlin {
     }
   }
 
-  sourceSets.commonMain {
-    kotlin.srcDir(generateVersionKtTask)
+  sourceSets {
+    commonMain {
+      kotlin.srcDir(generateVersionKtTask)
 
-    dependencies {
-      api(KotlinX.coroutines.core)
-      api(KotlinX.serialization.json)
+      dependencies {
+        api(KotlinX.coroutines.core)
+        api(KotlinX.serialization.json)
+      }
     }
   }
 }

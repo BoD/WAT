@@ -9,11 +9,13 @@ plugins {
 group = "org.jraf"
 version = "1.1.0"
 
+val entryPointModules = listOf(
+  ":serviceworker",
+  ":popup",
+)
+
 tasks.register<Sync>("devDist") {
-  listOf(
-    ":serviceworker",
-    ":popup",
-  )
+  entryPointModules
     .map {
       project(it)
     }
@@ -25,10 +27,7 @@ tasks.register<Sync>("devDist") {
 }
 
 tasks.register<Sync>("prodDist") {
-  listOf(
-    ":serviceworker",
-    ":popup",
-  )
+  entryPointModules
     .map {
       project(it)
     }
@@ -40,10 +39,7 @@ tasks.register<Sync>("prodDist") {
 }
 
 tasks.register<Zip>("prodDistZip") {
-  listOf(
-    ":serviceworker",
-    ":popup",
-  )
+  entryPointModules
     .map {
       project(it)
     }

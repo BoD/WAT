@@ -7,17 +7,21 @@ plugins {
 kotlin {
   js {
     browser()
+    binaries.executable()
     compilerOptions {
       target.set("es2015")
       optIn.addAll("kotlinx.coroutines.DelicateCoroutinesApi", "kotlinx.serialization.ExperimentalSerializationApi")
     }
-    binaries.executable()
   }
-  sourceSets.commonMain {
-    dependencies {
-      implementation(compose.html.core)
-      implementation(compose.runtime)
-      implementation(project(":shared"))
+
+  sourceSets {
+    commonMain {
+      dependencies {
+        implementation(compose.html.core)
+        implementation(compose.runtime)
+
+        implementation(project(":shared"))
+      }
     }
   }
 }
