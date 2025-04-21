@@ -74,19 +74,16 @@ class ServiceWorker {
   }
 
   fun start() {
+    observeWindows()
+    observeTabs()
+    registerMessageListener()
+    setupActionButton()
+
     GlobalScope.launch {
       initWindowRepository()
-      observeWindows()
-      observeTabs()
-      registerMessageListener()
-
-      launch {
-        watRepository.watWindows.collect {
-          messenger.publishWatWindows(it)
-        }
+      watRepository.watWindows.collect {
+        messenger.publishWatWindows(it)
       }
-
-      setupActionButton()
     }
   }
 
