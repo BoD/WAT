@@ -4,10 +4,11 @@ plugins {
   kotlin("plugin.serialization").apply(false)
   id("org.jetbrains.compose").apply(false)
   kotlin("plugin.compose").apply(false)
+  id("com.jakewharton.cite").apply(false)
 }
 
 group = "org.jraf"
-version = "1.1.1"
+version = "1.1.2"
 
 val entryPointModules = listOf(
   ":serviceworker",
@@ -59,7 +60,7 @@ tasks.register<Zip>("prodDistZip") {
 // For release (Firefox self-distribution):
 // Run `./gradlew prodDist`
 // Result is in build/prodDist
-// Then run `web-ext sign --channel unlisted --api-key 'user:xyz' --api-secret 'xyz'
+// Then run `web-ext sign --channel unlisted --api-key 'user:xyz:_' --api-secret 'xyz'
 
 // For release (Chrome and Firefox stores):
 // Run `./gradlew prodDistZip`

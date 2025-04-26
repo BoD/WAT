@@ -25,8 +25,10 @@
 
 package org.jraf.wat.popup
 
+import org.jraf.wat.shared.logging.logd
+
 // This is executed every time popup.html is opened.
 fun main() {
-  console.log("Popup opened")
+  logd("Popup opened")
   Popup().start()
 }

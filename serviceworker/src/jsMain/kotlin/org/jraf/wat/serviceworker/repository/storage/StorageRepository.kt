@@ -25,7 +25,6 @@
 
 package org.jraf.wat.serviceworker.repository.storage
 
-import chrome.storage.local
 import chrome.windows.QueryOptions
 import chrome.windows.WindowType
 import chrome.windows.getAll
@@ -52,7 +51,7 @@ class StorageRepository {
   }
 
   private suspend fun loadWatWindowsFromStorage(): List<WatWindow>? {
-    val items = local.get("StorageRoot").await()
+    val items = chrome.storage.local.get("StorageRoot").await()
     val obj = items.StorageRoot
     return if (obj == undefined) {
       null
@@ -67,7 +66,7 @@ class StorageRepository {
   suspend fun saveWatWindows(watWindows: List<WatWindow>) {
     val obj = js("{}")
     obj.StorageRoot = StorageRoot(windows = watWindows.map { it.toStorageWindow() }).toDynamic()
-    local.set(obj).await()
+    chrome.storage.local.set(obj).await()
   }
 }
 

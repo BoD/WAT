@@ -26,11 +26,14 @@
 package org.jraf.wat.serviceworker.repository.wat
 
 import chrome.windows.Window
+import com.jakewharton.cite.__FILE__
+import com.jakewharton.cite.__MEMBER__
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jraf.wat.serviceworker.repository.storage.StorageRepository
+import org.jraf.wat.shared.logging.logd
 import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
 import kotlin.js.Date
@@ -41,24 +44,28 @@ import kotlin.uuid.Uuid
 class WatRepository {
   private val storageRepository = StorageRepository()
 
+  private var isInitialized = false
+
   private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
   val watWindows: StateFlow<List<WatWindow>> = _watWindows
 
   suspend fun init() {
+    if (isInitialized) return
     _watWindows.value = storageRepository.loadWatWindowsFromStorageMinusSystemWindows()
+    isInitialized = true
   }
 
   fun bind(watWindowId: String, systemWindow: Window) {
     val watWindow = getWindow(watWindowId)
     check(watWindow != null) { "WatWindow $watWindowId not found" }
     check(!watWindow.isBound) { "WatWindow $watWindowId is already bound to a system window" }
-    _watWindows.value = _watWindows.value.map { watWindow ->
-      if (watWindow.id == watWindowId) {
-        watWindow.copy(
+    _watWindows.value = _watWindows.value.map {
+      if (it.id == watWindowId) {
+        it.copy(
           systemWindowId = systemWindow.id,
         )
       } else {
-        watWindow
+        it
       }
     }
   }
@@ -87,7 +94,7 @@ class WatRepository {
   }
 
   fun addSystemWindows(systemWindows: List<Window>) {
-    _watWindows.value = _watWindows.value + systemWindows
+    _watWindows.value += systemWindows
       // Ignore windows that are already bound
       .filterNot {
         _watWindows.value.any { watWindow -> watWindow.systemWindowId == it.id }
@@ -166,30 +173,25 @@ class WatRepository {
 
   private suspend fun saveWindows() {
     storageRepository.saveWatWindows(
-      _watWindows.value
-        .filter { it.isSaved }
-        // Some sanitization
-        .map { window ->
-          window.copy(
-            tabs = window.tabs.map { tab ->
-              tab.copy(
-                // favicons in the form of data URLs are huge, so we don't save them
-                favIconUrl = if (tab.favIconUrl?.startsWith("data:") == true) null else tab.favIconUrl,
-              )
-            },
-          )
-        },
+      _watWindows.value.filter { it.isSaved },
     )
   }
 
   private fun getWindow(watWindowId: String): WatWindow? = _watWindows.value.firstOrNull { it.id == watWindowId }
 
   suspend fun updateWatWindows(systemWindows: List<Window>) {
+    if (!isInitialized) {
+      logd(__FILE__, __MEMBER__, "Not initialized, ignoring")
+      return
+    }
+    // When activating a popup (including THE popup of this extension), we'll get a list of windows which are all unfocused.
+    // When that happens, just keep the current focus state.
+    val atLeastOneSystemWindowFocused = systemWindows.any { it.focused }
     _watWindows.value = _watWindows.value.map { watWindow ->
       val systemWindow = systemWindows.firstOrNull { it.id == watWindow.systemWindowId }
       if (systemWindow != null) {
         watWindow.copy(
-          focused = systemWindow.focused,
+          focused = if (atLeastOneSystemWindowFocused) systemWindow.focused else watWindow.focused,
           top = systemWindow.top,
           left = systemWindow.left,
           width = systemWindow.width,
@@ -209,16 +211,6 @@ class WatRepository {
       }
     }
     saveWindows()
-  }
-
-  fun focusSystemWindow(systemWindowId: Int) {
-    _watWindows.value = _watWindows.value.map { watWindow ->
-      if (watWindow.systemWindowId == systemWindowId) {
-        watWindow.copy(focused = true)
-      } else {
-        watWindow.copy(focused = false)
-      }
-    }
   }
 
   fun getWatWindow(watWindowId: String): WatWindow? = watWindows.value.firstOrNull { it.id == watWindowId }
@@ -285,7 +277,7 @@ class WatRepository {
       console.warn("Importing failed: %o", e)
       return false
     }
-    _watWindows.value = _watWindows.value + exportWindows.map { exportWindow ->
+    _watWindows.value += exportWindows.map { exportWindow ->
       WatWindow(
         id = Uuid.random().toHexString(),
         name = exportWindow.name,

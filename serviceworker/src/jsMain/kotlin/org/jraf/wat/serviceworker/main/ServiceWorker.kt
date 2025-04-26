@@ -51,6 +51,7 @@ import chrome.windows.onRemoved
 import kotlinx.browser.window
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jraf.wat.serviceworker.repository.wat.WatRepository
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
@@ -139,7 +140,7 @@ class ServiceWorker {
     chrome.tabs.onCreated.addListener { tab ->
       updateWindowRepository()
     }
-    onUpdated.addListener { tabId, changeInfo, tab ->
+    onUpdated.addListener { _, _, tab ->
       updateWindowRepository()
       if (tabIndexToActivate != null) {
         val systemTabIdToActivate = watRepository.getWatWindowBySystemId(tab.windowId)?.tabs?.getOrNull(tabIndexToActivate!!)?.systemTabId
@@ -151,28 +152,28 @@ class ServiceWorker {
         }
       }
     }
-    chrome.tabs.onRemoved.addListener { tabId, removeInfo ->
+    chrome.tabs.onRemoved.addListener { _, _ ->
+      GlobalScope.launch {
+        // This event seems to be sent before the tab is actually removed.
+        // So wait a bit before querying the windows.
+        delay(100)
+        updateWindowRepository()
+      }
+    }
+    onMoved.addListener { _, _ ->
       updateWindowRepository()
     }
-    onMoved.addListener { tabId, moveInfo ->
+    onAttached.addListener { _, _ ->
       updateWindowRepository()
     }
-    onAttached.addListener { tabId, attachInfo ->
+    onDetached.addListener { _, _ ->
       updateWindowRepository()
     }
-    onDetached.addListener { tabId, detachInfo ->
-      updateWindowRepository()
-    }
-    onReplaced.addListener { addedTabId, removedTabId ->
+    onReplaced.addListener { _, _ ->
       updateWindowRepository()
     }
     onActivated.addListener { activeInfo ->
-      GlobalScope.launch {
-        // Ignore focusing the popup window
-        val tab = chrome.tabs.get(activeInfo.tabId).await() ?: return@launch
-        if (tab.url == popupWindowUrl) return@launch
-        updateWindowRepository()
-      }
+      updateWindowRepository()
     }
   }
 

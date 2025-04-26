@@ -25,8 +25,10 @@
 
 package org.jraf.wat.serviceworker.main
 
+import org.jraf.wat.shared.logging.logd
+
 // This is executed once when the extension starts
 fun main() {
-  console.log("Service Worker started")
+  logd("Service Worker started")
   ServiceWorker().start()
 }

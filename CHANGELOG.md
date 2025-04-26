@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.2 - 2025-04-26
+
+- Try to fix an issue where the saved windows could be lost when the background page goes idle.
+
 ## v1.1.1 - 2025-04-21
 
 - Try to fix an issue where the script would stop running after a few minutes on Firefox.
