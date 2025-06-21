@@ -36,6 +36,7 @@ import org.jraf.wat.serviceworker.repository.storage.StorageRepository
 import org.jraf.wat.shared.logging.logd
 import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.util.decodeSuspended
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -302,14 +303,5 @@ class WatRepository {
     }
     saveWindows()
     return true
-  }
-}
-
-private fun String.decodeSuspended(): String {
-  // Special case for the "The Marvellous Suspender" extension (https://chromewebstore.google.com/detail/the-marvellous-suspender/noogafoofpebimajpfpamcfhoaifemoa) - get the actual URL
-  if (this.contains("noogafoofpebimajpfpamcfhoaifemoa")) {
-    return this.substringAfterLast("&uri=")
-  } else {
-    return this
   }
 }
