@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <style>
     :root {
+      --gray50Color: #999;
+
       --windowBgColor: black;
       --boundColor: white;
-      --unboundColor: #999;
+      --unboundColor: var(--gray50Color);
       --focusedWindowBgColor: #282828;
       --focusedTabBgColor: #484848;
       --selectedFgColor: black;
@@ -17,6 +19,7 @@
       --snackBarTextColor: white;
       --snackBarSuccessBackgroundColor: #2c662d;
       --snackBarErrorBackgroundColor: #662c2c;
+      --urlColor: var(--gray50Color);
 
       --smallWidth: .3rem;
       --mediumWidth: 1.3rem;
@@ -37,10 +40,15 @@
       position: relative;
       border-radius: var(--borderRadius);
       margin: var(--smallWidth);
+      border: .0625rem var(--unboundColor) dotted;
     }
 
     ul.focused {
       background-color: var(--focusedWindowBgColor);
+    }
+
+    ul.bound {
+      border-color: var(--boundColor);
     }
 
     li {
@@ -48,7 +56,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      height: 1rem;
       display: flex;
       align-items: center;
     }
@@ -66,10 +73,6 @@
     .window.bound {
       color: var(--boundColor);
     }
-
-    /*.window.focused {*/
-    /*  background-color: var(--selectedBgColor);*/
-    /*}*/
 
     .window .name {
       flex-grow: 1;
@@ -103,7 +106,7 @@
     .tab {
       color: var(--unboundColor);
       cursor: pointer;
-      padding: var(--smallWidth) var(--smallWidth) var(--smallWidth) var(--mediumWidth);
+      padding: var(--smallWidth);
       margin: var(--smallWidth);
       border-radius: var(--borderRadius);
     }
@@ -116,14 +119,27 @@
       background-color: var(--focusedTabBgColor);
     }
 
-    .tab .name {
+    .nameAndUrl {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      gap: calc(var(--smallWidth) / 2);
+    }
+
+    .tab .nameAndUrl .name {
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
+    .tab .nameAndUrl .url {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--urlColor);
+    }
+
     .tab .favIcon {
       margin-right: calc(var(--smallWidth) * 1.5);
-      width: 1rem;
+      width: var(--mediumWidth);
       text-align: center;
       font-size: 130%;
     }

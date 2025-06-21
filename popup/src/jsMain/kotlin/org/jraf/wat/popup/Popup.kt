@@ -42,7 +42,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.Draggable
-import org.jetbrains.compose.web.attributes.autoFocus
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Hr
 import org.jetbrains.compose.web.dom.Img
@@ -56,7 +55,9 @@ import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.asMessage
 import org.jraf.wat.shared.model.WatWindow
+import org.jraf.wat.shared.util.decodeSuspended
 import org.w3c.dom.HTMLDialogElement
+import org.w3c.dom.HTMLInputElement
 import kotlin.js.Date
 
 class Popup {
@@ -93,6 +94,9 @@ class Popup {
             buildList {
               if (watWindow.focused) {
                 add("focused")
+              }
+              if (watWindow.isBound) {
+                add("bound")
               }
             },
           )
@@ -183,8 +187,11 @@ class Popup {
             TextInput(
               value = watWindowNameBeingEdited!!,
             ) {
+              id("watWindowNameInput")
               classes("name")
-              autoFocus()
+              onFocus {
+                (it.target as HTMLInputElement).select()
+              }
               onInput { watWindowNameBeingEdited = it.value }
               onKeyUp {
                 when (it.key) {
@@ -201,6 +208,12 @@ class Popup {
                 }
               }
             }
+
+            LaunchedEffect(Unit) {
+              // Focus the input when it is created
+              (document.getElementById("watWindowNameInput") as? HTMLInputElement)?.focus()
+            }
+
           } else {
             Span(
               attrs = {
@@ -309,12 +322,25 @@ class Popup {
                   },
                 )
               }
-              Span(
+              Div(
                 attrs = {
-                  classes("name")
+                  classes("nameAndUrl")
                 },
               ) {
-                Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+                Span(
+                  attrs = {
+                    classes("name")
+                  },
+                ) {
+                  Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+                }
+                Span(
+                  attrs = {
+                    classes("url")
+                  },
+                ) {
+                  Text(watTab.url.prettyUrl())
+                }
               }
             }
           }
@@ -448,3 +474,23 @@ private class SnackBarSpec(
     return Date().getMilliseconds()
   }
 }
+
+private fun String.prettyUrl(): String {
+  return decodeSuspended()
+    .removePrefix("https://")
+    .removePrefix("http://")
+    .removePrefix("www.")
+    .simplifyGitHub()
+    // xyz.com -> xyz
+    .replace(Regex("^([^/.]+)\\.com(.*)"), "$1$2")
+    .replace("/", " / ")
+}
+
+// github.com/$org/$proj/xxxx/y/z -> github/$proj/xxxx/y/z
+private fun String.simplifyGitHub(): String {
+  return this
+    .replace(Regex("^github\\.com/([^/]+)/$"), "github.com/$1")
+    .replace(Regex("^github\\.com/([^/]+)/(.+)$"), "github.com/$2")
+}
+
+
