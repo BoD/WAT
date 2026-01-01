@@ -1,7 +1,8 @@
 # Changelog
 
 ## v1.3.0 - 2026-01-01
-- Use a side panel instead of a popup window.
+
+Use a side panel instead of a popup window.
 
 ## v1.2.0 - 2025-06-21
 
