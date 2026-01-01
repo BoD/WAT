@@ -23,11 +23,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-@file:JsQualifier("browser")
-
 package browser
 
-external val sidebarAction: SidebarAction
+external val browser: Browser
+
+external interface Browser {
+  val sidebarAction: SidebarAction
+}
 
 external interface SidebarAction {
   fun toggle()

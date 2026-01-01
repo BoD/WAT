@@ -25,7 +25,7 @@
 
 package org.jraf.wat.serviceworker.main
 
-import browser.sidebarAction
+import browser.browser
 import chrome.action.onClicked
 import chrome.runtime.getURL
 import chrome.runtime.onMessage
@@ -302,7 +302,7 @@ class ServiceWorker {
     } else {
       // Firefox: we use the sidebarAction API -> https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sidebarAction
       onClicked.addListener {
-        sidebarAction.toggle()
+        browser.sidebarAction.toggle()
       }
     }
   }

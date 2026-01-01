@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 plugins {
   // See https://splitties.github.io/refreshVersions/
   id("de.fayard.refreshVersions") version "0.60.5"
+////                          # available:"0.60.6"
 }
 
 rootProject.name = "wat"
