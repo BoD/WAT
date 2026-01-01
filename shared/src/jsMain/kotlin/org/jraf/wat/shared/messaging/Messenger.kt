@@ -90,6 +90,14 @@ class Messenger {
     sendMessage(message)
   }
 
+  fun closeTab(watWindowId: String, tabIndex: Int) {
+    val message = CloseTabMessage(
+      watWindowId = watWindowId,
+      tabIndex = tabIndex,
+    )
+    sendMessage(message)
+  }
+
   suspend fun getExport(): String {
     return sendMessageAndWaitForResult(GetExportMessage)
   }

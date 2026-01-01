@@ -61,3 +61,6 @@ data object GetExportMessage : Message()
 
 @Serializable
 class ImportMessage(val importJsonString: String) : Message()
+
+@Serializable
+class CloseTabMessage(val watWindowId: String, val tabIndex: Int) : Message()

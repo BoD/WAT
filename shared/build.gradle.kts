@@ -1,11 +1,11 @@
 plugins {
-  kotlin("multiplatform")
-  kotlin("plugin.js-plain-objects")
-  kotlin("plugin.serialization")
+  alias(libs.plugins.kotlin.multiplatform)
+  alias(libs.plugins.kotlin.jsPlainObjects)
+  alias(libs.plugins.kotlin.serialization)
 }
 
 // Generate a Version.kt file with a constant for the version name
-val generateVersionKtTask = tasks.register("generateVersionKt") {
+val generateVersionKtTask: TaskProvider<Task> = tasks.register("generateVersionKt") {
   val outputDir = layout.buildDirectory.dir("generated/source/kotlin").get().asFile
   outputs.dir(outputDir)
   doFirst {
@@ -33,8 +33,8 @@ kotlin {
       kotlin.srcDir(generateVersionKtTask)
 
       dependencies {
-        api(KotlinX.coroutines.core)
-        api(KotlinX.serialization.json)
+        api(libs.kotlinx.coroutines.core)
+        api(libs.kotlinx.serialization.json)
       }
     }
   }

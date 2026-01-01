@@ -66,10 +66,6 @@
       padding: var(--smallWidth);
     }
 
-    .window:hover .actionIcon {
-      display: inline;
-    }
-
     .window.bound {
       color: var(--boundColor);
     }
@@ -92,15 +88,19 @@
       font-size: 120%;
     }
 
-    .window .actionIcon {
+    .actionIcon {
       padding-left: calc(var(--smallWidth) * 2);
       padding-right: calc(var(--smallWidth) * 2);
       display: none;
       transition: all .2s ease-in-out;
     }
 
-    .window .actionIcon:hover {
+    .actionIcon:hover {
       transform: scale(1.2);
+    }
+
+    .window:hover .actionIcon, .tab:hover .actionIcon {
+      display: inline;
     }
 
     .tab {
@@ -109,6 +109,7 @@
       padding: var(--smallWidth);
       margin: var(--smallWidth);
       border-radius: var(--borderRadius);
+      scroll-margin: calc(var(--mediumWidth) * 4);
     }
 
     .tab.bound {
@@ -121,6 +122,7 @@
 
     .nameAndUrl {
       display: flex;
+      flex-grow: 1;
       flex-direction: column;
       overflow: hidden;
       gap: calc(var(--smallWidth) / 2);
@@ -128,13 +130,29 @@
 
     .tab .nameAndUrl .name {
       overflow: hidden;
-      text-overflow: ellipsis;
+      text-overflow: clip;
+      color: var(--unboundColor);
+      background: linear-gradient(to right, var(--unboundColor) 0px, var(--unboundColor) calc(100% - var(--mediumWidth)), color-mix(in srgb, black, transparent 100%) 100%);
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tab.bound .nameAndUrl .name {
+      overflow: hidden;
+      text-overflow: clip;
+      color: var(--boundColor);
+      background: linear-gradient(to right, var(--boundColor) 0px, var(--boundColor) calc(100% - var(--mediumWidth)), color-mix(in srgb, black, transparent 100%) 100%);
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .tab .nameAndUrl .url {
       overflow: hidden;
-      text-overflow: ellipsis;
+      text-overflow: clip;
       color: var(--urlColor);
+      background: linear-gradient(to right, var(--urlColor) 0px, var(--urlColor) calc(100% - var(--mediumWidth)), color-mix(in srgb, black, transparent 100%) 100%);
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .tab .favIcon {

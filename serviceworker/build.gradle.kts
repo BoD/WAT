@@ -1,12 +1,12 @@
 plugins {
-  kotlin("multiplatform")
-  kotlin("plugin.js-plain-objects")
-  kotlin("plugin.serialization")
-  id("com.jakewharton.cite")
+  alias(libs.plugins.kotlin.multiplatform)
+  alias(libs.plugins.kotlin.jsPlainObjects)
+  alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.jakewharton.cite)
 }
 
 // Replace the version in the manifest with the project's version
-val replaceVersionInManifestTask = tasks.register("replaceVersionInManifest") {
+val replaceVersionInManifestTask: TaskProvider<Task> = tasks.register("replaceVersionInManifest") {
   val manifestFile = layout.projectDirectory.dir("src/manifest.json").asFile
   val outputDir = layout.buildDirectory.dir("generated/resources").get().asFile
   outputs.dir(outputDir)

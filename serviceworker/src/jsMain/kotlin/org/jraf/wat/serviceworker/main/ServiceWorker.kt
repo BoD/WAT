@@ -25,9 +25,12 @@
 
 package org.jraf.wat.serviceworker.main
 
+import browser.browser
 import chrome.action.onClicked
 import chrome.runtime.getURL
 import chrome.runtime.onMessage
+import chrome.sidePanel.PanelBehavior
+import chrome.sidePanel.sidePanel
 import chrome.tabs.UpdateProperties
 import chrome.tabs.onActivated
 import chrome.tabs.onAttached
@@ -37,7 +40,6 @@ import chrome.tabs.onReplaced
 import chrome.tabs.onUpdated
 import chrome.tabs.update
 import chrome.windows.CreateData
-import chrome.windows.CreateType
 import chrome.windows.QueryOptions
 import chrome.windows.UpdateInfo
 import chrome.windows.WindowType
@@ -54,6 +56,7 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jraf.wat.serviceworker.repository.wat.WatRepository
+import org.jraf.wat.shared.messaging.CloseTabMessage
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
 import org.jraf.wat.shared.messaging.GetExportMessage
 import org.jraf.wat.shared.messaging.ImportMessage
@@ -227,6 +230,13 @@ class ServiceWorker {
           }
         }
 
+        is CloseTabMessage -> {
+          closeTab(
+            watWindowId = message.watWindowId,
+            tabIndex = message.tabIndex,
+          )
+        }
+
         else -> {
           // Ignore
         }
@@ -279,36 +289,28 @@ class ServiceWorker {
   }
 
   private fun setupActionButton() {
-    // "action" is the extension's icon in the toolbar
-    onClicked.addListener {
-      GlobalScope.launch {
-        // If the popup window is already open, focus it, otherwise create it
-        val popupWindow = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.popup))).await()
-          .firstOrNull { it.tabs?.any { it.url == popupWindowUrl } == true }
-        if (popupWindow != null) {
-          chrome.windows.update(popupWindow.id!!, UpdateInfo(focused = true))
-        } else {
-          val height = if (jsTypeOf(window) == "undefined") {
-            // In Chrome window is not defined in the service worker.
-            // It's ok because the popup is resizing itself (which doesn't work in Firefox ¯\_(ツ)_/¯)
-            // Also... "not defined" is not the same as undefined... ¯\_(ツ)_/¯
-            800
-          } else {
-            window.screen.availHeight
-          }
-          create(
-            CreateData(
-              url = arrayOf(popupWindowUrl),
-              type = CreateType.popup,
-              focused = true,
-              top = 0,
-              left = 0,
-              width = 320,
-              height = height,
-            ),
-          ).await()
+    // In Chrome window is not defined in the service worker.
+    // Note: "not defined" is not the same as `undefined`... ¯\_(ツ)_/¯
+    val isChrome = jsTypeOf(window) == "undefined"
+    if (isChrome) {
+      // Chrome: we use the sidePanel API -> https://developer.chrome.com/docs/extensions/reference/api/sidePanel
+      onClicked.addListener {
+        GlobalScope.launch {
+          sidePanel.setPanelBehavior(PanelBehavior(openPanelOnActionClick = true)).await()
         }
       }
+    } else {
+      // Firefox: we use the sidebarAction API -> https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sidebarAction
+      onClicked.addListener {
+        browser.sidebarAction.toggle()
+      }
+    }
+  }
+
+  private fun closeTab(watWindowId: String, tabIndex: Int) {
+    val systemTabId = watRepository.getWatWindow(watWindowId)?.tabs?.getOrNull(tabIndex)?.systemTabId ?: return
+    GlobalScope.launch {
+      chrome.tabs.remove(systemTabId).await()
     }
   }
 }
