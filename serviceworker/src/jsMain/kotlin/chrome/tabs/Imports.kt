@@ -142,3 +142,5 @@ external interface ChangeInfo {
 }
 
 external fun update(tabId: Int, updateProperties: UpdateProperties): Promise<Tab>
+
+external fun remove(tabId: Int): Promise<Unit>

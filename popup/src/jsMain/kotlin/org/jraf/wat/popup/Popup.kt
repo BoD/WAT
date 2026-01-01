@@ -58,6 +58,11 @@ import org.jraf.wat.shared.model.WatWindow
 import org.jraf.wat.shared.util.decodeSuspended
 import org.w3c.dom.HTMLDialogElement
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.NEAREST
+import org.w3c.dom.SMOOTH
+import org.w3c.dom.ScrollBehavior
+import org.w3c.dom.ScrollIntoViewOptions
+import org.w3c.dom.ScrollLogicalPosition
 import kotlin.js.Date
 
 class Popup {
@@ -290,6 +295,7 @@ class Popup {
           for ((i, watTab) in watWindow.tabs.withIndex()) {
             Li(
               attrs = {
+                id("watTab-${watWindow.id}-$i")
                 classes(
                   buildList {
                     add("tab")
@@ -342,6 +348,10 @@ class Popup {
                   Text(watTab.url.prettyUrl())
                 }
               }
+
+              ActionIcon("❌") {
+                messenger.closeTab(watWindowId = watWindow.id, tabIndex = i)
+              }
             }
           }
         }
@@ -353,6 +363,16 @@ class Popup {
             classes("dropTarget", "after")
           },
         )
+      }
+    }
+
+    // Make sure active tab is visible
+    val focusedWindow = watWindows.firstOrNull { it.focused } ?: return
+    val activeTabIndex = focusedWindow.tabs.indexOfFirst { it.active }
+    if (activeTabIndex != -1) {
+      LaunchedEffect(focusedWindow.id, activeTabIndex) {
+        val tabElement = document.getElementById("watTab-${focusedWindow.id}-$activeTabIndex") ?: return@LaunchedEffect
+        tabElement.scrollIntoView(ScrollIntoViewOptions(block = ScrollLogicalPosition.NEAREST, behavior = ScrollBehavior.SMOOTH))
       }
     }
   }
@@ -492,5 +512,3 @@ private fun String.simplifyGitHub(): String {
     .replace(Regex("^github\\.com/([^/]+)/$"), "github.com/$1")
     .replace(Regex("^github\\.com/([^/]+)/(.+)$"), "github.com/$2")
 }
-
-

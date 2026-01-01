@@ -206,6 +206,8 @@ class WatRepository {
               active = systemTab.active,
             )
           } ?: emptyList(),
+          // Active tab expands it window
+          treeExpanded = watWindow.treeExpanded || (systemWindow.tabs?.any { it.active } == true),
         )
       } else {
         watWindow
