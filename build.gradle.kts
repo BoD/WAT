@@ -1,10 +1,10 @@
 plugins {
-  kotlin("multiplatform").apply(false)
-  kotlin("plugin.js-plain-objects").apply(false)
-  kotlin("plugin.serialization").apply(false)
-  id("org.jetbrains.compose").apply(false)
-  kotlin("plugin.compose").apply(false)
-  id("com.jakewharton.cite").apply(false)
+  alias(libs.plugins.kotlin.multiplatform).apply(false)
+  alias(libs.plugins.kotlin.jsPlainObjects).apply(false)
+  alias(libs.plugins.kotlin.serialization).apply(false)
+  alias(libs.plugins.compose).apply(false)
+  alias(libs.plugins.kotlin.compose).apply(false)
+  alias(libs.plugins.jakewharton.cite).apply(false)
 }
 
 group = "org.jraf"
@@ -58,10 +58,10 @@ tasks.register<Zip>("prodDistZip") {
 // Result is in build/devDist
 
 // For release (Firefox self-distribution):
-// Run `./gradlew prodDist`
+// Run `./gradlew clean prodDist`
 // Result is in build/prodDist
 // Then run `web-ext sign --channel unlisted --api-key 'user:xyz:_' --api-secret 'xyz'
 
 // For release (Chrome and Firefox stores):
-// Run `./gradlew prodDistZip`
+// Run `./gradlew clean prodDistZip`
 // Result is in build/prodDist/wat-x.y.z.zip
