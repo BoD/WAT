@@ -2,7 +2,7 @@
 
 A browser extension to help manage windows and tabs.
 
-- A popup shows the list of all your open windows, as well as the ones you have saved.
+- A panel shows the list of all your open windows, as well as the ones you have saved.
 - A save button allows you to save windows so they can be restored later.
 - Clicking on a window will restore it (if not already opened) or focus it.
 
