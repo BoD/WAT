@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.1 - 2026-03-21
+
+- Fix a bug where the UI would sometimes be unresponsive.
+- Fix a minor display bug.
+
 ## v1.3.0 - 2026-01-01
 
 Use a side panel instead of a popup window.
