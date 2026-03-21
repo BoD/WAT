@@ -17,8 +17,8 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        implementation(compose.html.core)
-        implementation(compose.runtime)
+        implementation(libs.compose.runtime)
+        implementation(libs.compose.html.core)
 
         implementation(project(":shared"))
       }

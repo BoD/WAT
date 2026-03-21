@@ -2,7 +2,6 @@ plugins {
   alias(libs.plugins.kotlin.multiplatform)
   alias(libs.plugins.kotlin.jsPlainObjects)
   alias(libs.plugins.kotlin.serialization)
-  alias(libs.plugins.jakewharton.cite)
 }
 
 // Replace the version in the manifest with the project's version

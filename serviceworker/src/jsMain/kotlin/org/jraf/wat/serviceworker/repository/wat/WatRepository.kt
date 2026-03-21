@@ -26,14 +26,12 @@
 package org.jraf.wat.serviceworker.repository.wat
 
 import chrome.windows.Window
-import com.jakewharton.cite.__FILE__
-import com.jakewharton.cite.__MEMBER__
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jraf.klibnanolog.logd
 import org.jraf.wat.serviceworker.repository.storage.StorageRepository
-import org.jraf.wat.shared.logging.logd
 import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
 import org.jraf.wat.shared.util.decodeSuspended
@@ -182,8 +180,8 @@ class WatRepository {
 
   suspend fun updateWatWindows(systemWindows: List<Window>) {
     if (!isInitialized) {
-      logd(__FILE__, __MEMBER__, "Not initialized, ignoring")
-      return
+      logd("Not initialized, calling init()")
+      init()
     }
     // When activating a popup (including THE popup of this extension), we'll get a list of windows which are all unfocused.
     // When that happens, just keep the current focus state.

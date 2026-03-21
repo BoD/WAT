@@ -51,6 +51,7 @@ import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.TextInput
 import org.jetbrains.compose.web.dom.Ul
 import org.jetbrains.compose.web.renderComposable
+import org.jraf.klibnanolog.logd
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.asMessage
@@ -460,9 +461,10 @@ class Popup {
     get() = dataTransfer?.types?.firstOrNull()?.takeIf { it.startsWith(DATA_PREFIX) }?.removePrefix(DATA_PREFIX)
 
   private fun registerMessageListener() {
-    chrome.runtime.onMessage.addListener { msg, _, sendResponse ->
+    chrome.runtime.onMessage.addListener { msg, _, _ ->
       when (val message = msg.asMessage()) {
         is PublishWatWindowsMessage -> {
+          logd("Got wat windows size=${message.watWindows.size}")
           watWindows.value = message.watWindows
         }
 

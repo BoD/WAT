@@ -25,7 +25,8 @@
 
 package org.jraf.wat.popup
 
-import org.jraf.wat.shared.logging.logd
+import org.jraf.klibnanolog.logd
+
 
 // This is executed every time popup.html is opened.
 fun main() {

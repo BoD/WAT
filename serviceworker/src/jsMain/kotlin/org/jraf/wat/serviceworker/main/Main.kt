@@ -25,7 +25,7 @@
 
 package org.jraf.wat.serviceworker.main
 
-import org.jraf.wat.shared.logging.logd
+import org.jraf.klibnanolog.logd
 
 // This is executed once when the extension starts
 fun main() {

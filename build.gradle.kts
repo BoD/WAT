@@ -4,11 +4,10 @@ plugins {
   alias(libs.plugins.kotlin.serialization).apply(false)
   alias(libs.plugins.compose).apply(false)
   alias(libs.plugins.kotlin.compose).apply(false)
-  alias(libs.plugins.jakewharton.cite).apply(false)
 }
 
 group = "org.jraf"
-version = "1.3.0"
+version = "1.3.1"
 
 val entryPointModules = listOf(
   ":serviceworker",
