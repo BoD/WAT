@@ -76,6 +76,7 @@ import chrome.tabGroups.onUpdated as onTabGroupUpdated
 class ServiceWorker {
   private val watRepository = WatRepository()
   private val tabGroupController = TabGroupController(watRepository::setSystemTabGroupId)
+  private val systemWindowIdsBeingEnsured = mutableSetOf<Int>()
 
   private val messenger = Messenger()
 
@@ -113,9 +114,34 @@ class ServiceWorker {
   }
 
   private fun ensureTabGroupForSystemWindow(systemWindowId: Int) {
+    if (!systemWindowIdsBeingEnsured.add(systemWindowId)) return
     GlobalScope.launch {
-      watRepository.getWatWindowBySystemId(systemWindowId)?.let {
-        tabGroupController.ensureGroup(it)
+      try {
+        // A dragged tab can be attached after windows.onCreated, so the new
+        // window is briefly empty when the first reconciliation runs.
+        var watWindowWasFound = false
+        repeat(10) { attempt ->
+          val watWindow = watRepository.getWatWindowBySystemId(systemWindowId)
+          if (watWindow == null && watWindowWasFound) {
+            return@launch
+          }
+          watWindowWasFound = watWindow != null
+          try {
+            val ensured = watWindow?.let {
+              tabGroupController.ensureGroup(it)
+            } == true
+            if (ensured) {
+              return@launch
+            }
+          } catch (e: Throwable) {
+            if (e.message?.contains("Tabs cannot be edited right now") != true) {
+              throw e
+            }
+          }
+          if (attempt < 9) delay(100.milliseconds)
+        }
+      } finally {
+        systemWindowIdsBeingEnsured.remove(systemWindowId)
       }
     }
   }

@@ -65,27 +65,29 @@ class TabGroupController(
     watWindows.forEach { ensureGroup(it) }
   }
 
-  suspend fun ensureGroup(watWindow: WatWindow) {
+  suspend fun ensureGroup(watWindow: WatWindow): Boolean {
     if (!watWindowIdsBeingEnsured.add(watWindow.id)) {
       queuedWatWindows[watWindow.id] = watWindow
-      return
+      return false
     }
 
     try {
       var windowToEnsure: WatWindow? = watWindow
+      var ensured = false
       while (windowToEnsure != null) {
-        ensureGroupOnce(windowToEnsure)
+        ensured = ensureGroupOnce(windowToEnsure)
         windowToEnsure = queuedWatWindows.remove(watWindow.id)
       }
+      return ensured
     } finally {
       watWindowIdsBeingEnsured.remove(watWindow.id)
     }
   }
 
-  private suspend fun ensureGroupOnce(watWindow: WatWindow) {
-    val systemWindowId = watWindow.systemWindowId ?: return
+  private suspend fun ensureGroupOnce(watWindow: WatWindow): Boolean {
+    val systemWindowId = watWindow.systemWindowId ?: return false
     val tabs = queryTabs(TabQueryInfo(windowId = systemWindowId)).await()
-    if (tabs.isEmpty()) return
+    if (tabs.isEmpty()) return false
 
     val tabIds = tabs.map { it.id }.toTypedArray()
     val tabGroups = queryTabGroups(TabGroupQueryInfo(windowId = systemWindowId)).await()
@@ -118,6 +120,7 @@ class TabGroupController(
         ),
       ).await()
     }
+    return true
   }
 
   fun forgetGroup(watWindowId: String) {
