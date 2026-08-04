@@ -71,10 +71,11 @@ import org.jraf.wat.shared.messaging.asMessage
 import kotlin.time.Duration.Companion.milliseconds
 import chrome.tabGroups.onCreated as onTabGroupCreated
 import chrome.tabGroups.onRemoved as onTabGroupRemoved
+import chrome.tabGroups.onUpdated as onTabGroupUpdated
 
 class ServiceWorker {
   private val watRepository = WatRepository()
-  private val tabGroupController = TabGroupController()
+  private val tabGroupController = TabGroupController(watRepository::setSystemTabGroupId)
 
   private val messenger = Messenger()
 
@@ -217,6 +218,21 @@ class ServiceWorker {
       updateWindowRepository()
       ensureTabGroupForSystemWindow(group.windowId)
     }
+    onTabGroupUpdated.addListener { group ->
+      GlobalScope.launch {
+        val watWindow = watRepository.getWatWindowBySystemId(group.windowId) ?: return@launch
+        if (!tabGroupController.isManagedGroup(watWindow, group)) return@launch
+
+        val newName = group.title.orEmpty()
+        val updatedWatWindow = if (newName != watWindow.name) {
+          watRepository.renameWindow(watWindow.id, newName)
+          watWindow.copy(name = newName)
+        } else {
+          watWindow
+        }
+        tabGroupController.ensureColor(updatedWatWindow, group)
+      }
+    }
   }
 
   private fun registerMessageListener() {
@@ -232,7 +248,9 @@ class ServiceWorker {
 
         is SaveWatWindowMessage -> {
           GlobalScope.launch {
+            val watWindow = watRepository.getWatWindow(message.watWindowId) ?: return@launch
             watRepository.saveWindow(watWindowId = message.watWindowId, name = message.windowName)
+            tabGroupController.renameGroup(watWindow, message.windowName)
           }
         }
 

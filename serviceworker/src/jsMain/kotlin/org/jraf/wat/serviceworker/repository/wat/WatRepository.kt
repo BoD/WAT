@@ -36,10 +36,8 @@ import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
 import org.jraf.wat.shared.util.decodeSuspended
 import kotlin.js.Date
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 class WatRepository {
   private val storageRepository = StorageRepository()
 
@@ -62,6 +60,7 @@ class WatRepository {
       if (it.id == watWindowId) {
         it.copy(
           systemWindowId = systemWindow.id,
+          systemTabGroupId = null,
         )
       } else {
         it
@@ -75,6 +74,7 @@ class WatRepository {
         if (it.isSaved) {
           it.copy(
             systemWindowId = null,
+            systemTabGroupId = null,
             focused = false,
             tabs = it.tabs.map { tab ->
               tab.copy(
@@ -142,6 +142,28 @@ class WatRepository {
           name = name,
           isSaved = true,
         )
+      } else {
+        it
+      }
+    }
+    saveWindows()
+  }
+
+  suspend fun renameWindow(watWindowId: String, name: String) {
+    _watWindows.value = _watWindows.value.map {
+      if (it.id == watWindowId) {
+        it.copy(name = name)
+      } else {
+        it
+      }
+    }
+    saveWindows()
+  }
+
+  suspend fun setSystemTabGroupId(watWindowId: String, systemTabGroupId: Int) {
+    _watWindows.value = _watWindows.value.map {
+      if (it.id == watWindowId) {
+        it.copy(systemTabGroupId = systemTabGroupId)
       } else {
         it
       }

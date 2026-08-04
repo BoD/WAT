@@ -39,10 +39,12 @@ import chrome.tabs.query as queryTabs
 /**
  * Maintains WAT's invariant that every tab in a managed browser window belongs
  * to one authoritative tab group. Group ids are browser-session identifiers,
- * so this class only keeps them in memory and recovers them by window and name
- * whenever the service worker starts again.
+ * so this class persists the current id and recovers it by window and name if
+ * the browser changes it during session restore.
  */
-class TabGroupController {
+class TabGroupController(
+  private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Int) -> Unit,
+) {
   private val groupColors = arrayOf(
     "grey",
     "blue",
@@ -99,7 +101,7 @@ class TabGroupController {
         ).await()
       }
 
-    groupIdsByWatWindowId[watWindow.id] = groupId
+    rememberGroup(watWindow, groupId)
 
     val existingGroup = tabGroups.firstOrNull { it.id == groupId }
     if (existingGroup != null && existingGroup.color != colorFor(watWindow.name)) {
@@ -123,15 +125,54 @@ class TabGroupController {
     queuedWatWindows.remove(watWindowId)
   }
 
-  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Int? {
-    val rememberedGroupId = groupIdsByWatWindowId[watWindow.id]
-    if (rememberedGroupId != null && tabGroups.any { it.id == rememberedGroupId }) {
-      return rememberedGroupId
+  suspend fun renameGroup(watWindow: WatWindow, newName: String) {
+    val systemWindowId = watWindow.systemWindowId ?: return
+    val tabGroups = queryTabGroups(TabGroupQueryInfo(windowId = systemWindowId)).await()
+    val groupId = findGroup(tabGroups, watWindow)
+    if (groupId == null) {
+      ensureGroup(watWindow.copy(name = newName))
+      return
     }
 
-    // A service worker restart loses the in-memory id. The matching title is
-    // the best cross-browser recovery signal because ids are not persistent.
+    rememberGroup(watWindow, groupId)
+    updateTabGroup(
+      groupId,
+      updateProperties(
+        title = newName,
+        color = colorFor(newName),
+      ),
+    ).await()
+  }
+
+  fun isManagedGroup(watWindow: WatWindow, tabGroup: TabGroup): Boolean {
+    return tabGroup.id == groupIdsByWatWindowId[watWindow.id] || tabGroup.id == watWindow.systemTabGroupId
+  }
+
+  suspend fun ensureColor(watWindow: WatWindow, tabGroup: TabGroup) {
+    if (isManagedGroup(watWindow, tabGroup) && tabGroup.color != colorFor(watWindow.name)) {
+      updateTabGroup(tabGroup.id, updateProperties(color = colorFor(watWindow.name))).await()
+    }
+  }
+
+  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Int? {
+    val groupIds = listOfNotNull(
+      groupIdsByWatWindowId[watWindow.id],
+      watWindow.systemTabGroupId,
+    )
+    groupIds.firstOrNull { groupId -> tabGroups.any { it.id == groupId } }?.let {
+      return it
+    }
+
+    // Group ids change on browser session restore, so title matching is the
+    // cross-browser fallback when the persisted id is no longer valid.
     return tabGroups.firstOrNull { it.title == watWindow.name }?.id
+  }
+
+  private suspend fun rememberGroup(watWindow: WatWindow, groupId: Int) {
+    groupIdsByWatWindowId[watWindow.id] = groupId
+    if (watWindow.systemTabGroupId != groupId) {
+      onSystemTabGroupIdChanged(watWindow.id, groupId)
+    }
   }
 
   private fun colorFor(name: String): String {

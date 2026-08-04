@@ -43,7 +43,10 @@ class StorageRepository {
       .mapNotNull { it.id }
     return watWindowsFromStorage.map {
       if (!systemWindowIds.contains(it.systemWindowId)) {
-        it.copy(systemWindowId = null)
+        it.copy(
+          systemWindowId = null,
+          systemTabGroupId = null,
+        )
       } else {
         it
       }
@@ -83,6 +86,7 @@ private fun StorageWindow.toWatWindow(): WatWindow {
     focused = false,
     tabs = tabs.map { it.toWatTab() },
     treeExpanded = treeExpanded,
+    systemTabGroupId = systemTabGroupId,
   )
 }
 
@@ -107,6 +111,7 @@ private fun WatWindow.toStorageWindow(): StorageWindow {
     height = height,
     tabs = tabs.map { it.toStorageTab() },
     treeExpanded = treeExpanded,
+    systemTabGroupId = systemTabGroupId,
   )
 }
 

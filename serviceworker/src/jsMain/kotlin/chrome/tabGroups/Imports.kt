@@ -51,3 +51,9 @@ external val onRemoved: OnRemoved
 external interface OnRemoved {
   fun addListener(callback: (group: TabGroup) -> Unit)
 }
+
+external val onUpdated: OnUpdated
+
+external interface OnUpdated {
+  fun addListener(callback: (group: TabGroup) -> Unit)
+}
