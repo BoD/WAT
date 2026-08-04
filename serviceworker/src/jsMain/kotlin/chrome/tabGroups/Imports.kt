@@ -2,7 +2,7 @@
  * This source is part of the
  *      _____  ___   ____
  *  __ / / _ \/ _ | / __/___  _______ _
- * / // / , _/ __ |/ _/_/ _ \/ __/ _ `/
+ * / // / , _/ __ |/ _/_/ _ \/ __/ _ `/_
  * \___/_/|_/_/ |_/_/ (_)___/_/  \_, /
  *                              /___/
  * repository.
@@ -23,22 +23,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package chrome.tabs
+@file:JsQualifier("chrome.tabGroups")
 
-import kotlinx.js.JsPlainObject
+package chrome.tabGroups
 
-@JsPlainObject
-external interface UpdateProperties {
-  val active: Boolean?
+import kotlin.js.Promise
+
+external interface TabGroup {
+  val id: Int
+  val windowId: Int
+  val title: String?
 }
 
-@JsPlainObject
-external interface QueryInfo {
-  val windowId: Int?
+external fun query(queryInfo: QueryInfo): Promise<Array<TabGroup>>
+
+external fun update(groupId: Int, updateProperties: UpdateProperties): Promise<TabGroup>
+
+external val onCreated: OnCreated
+
+external interface OnCreated {
+  fun addListener(callback: (group: TabGroup) -> Unit)
 }
 
-@JsPlainObject
-external interface GroupOptions {
-  val tabIds: Array<Int>?
-  val groupId: Int?
+external val onRemoved: OnRemoved
+
+external interface OnRemoved {
+  fun addListener(callback: (group: TabGroup) -> Unit)
 }

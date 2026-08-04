@@ -2,7 +2,7 @@
  * This source is part of the
  *      _____  ___   ____
  *  __ / / _ \/ _ | / __/___  _______ _
- * / // / , _/ __ |/ _/_/ _ \/ __/ _ `/
+ * / // / , _/ __ |/ _/_/ _ \/ __/ _ `/_
  * \___/_/|_/_/ |_/_/ (_)___/_/  \_, /
  *                              /___/
  * repository.
@@ -23,14 +23,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package chrome.tabs
+package chrome.tabGroups
 
 import kotlinx.js.JsPlainObject
-
-@JsPlainObject
-external interface UpdateProperties {
-  val active: Boolean?
-}
 
 @JsPlainObject
 external interface QueryInfo {
@@ -38,7 +33,6 @@ external interface QueryInfo {
 }
 
 @JsPlainObject
-external interface GroupOptions {
-  val tabIds: Array<Int>?
-  val groupId: Int?
+external interface UpdateProperties {
+  val title: String?
 }

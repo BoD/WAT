@@ -56,6 +56,7 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jraf.wat.serviceworker.repository.wat.WatRepository
+import org.jraf.wat.serviceworker.tabgroups.TabGroupController
 import org.jraf.wat.shared.messaging.CloseTabMessage
 import org.jraf.wat.shared.messaging.FocusOrCreateWatWindowMessage
 import org.jraf.wat.shared.messaging.GetExportMessage
@@ -67,9 +68,13 @@ import org.jraf.wat.shared.messaging.SaveWatWindowMessage
 import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
+import kotlin.time.Duration.Companion.milliseconds
+import chrome.tabGroups.onCreated as onTabGroupCreated
+import chrome.tabGroups.onRemoved as onTabGroupRemoved
 
 class ServiceWorker {
   private val watRepository = WatRepository()
+  private val tabGroupController = TabGroupController()
 
   private val messenger = Messenger()
 
@@ -80,6 +85,7 @@ class ServiceWorker {
   fun start() {
     observeWindows()
     observeTabs()
+    observeTabGroups()
     registerMessageListener()
     setupActionButton()
 
@@ -95,12 +101,21 @@ class ServiceWorker {
     watRepository.init()
     val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
     watRepository.addSystemWindows(windows.toList())
+    tabGroupController.ensureGroups(watRepository.watWindows.value)
   }
 
   private fun updateWindowRepository() {
     GlobalScope.launch {
       val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
       watRepository.updateWatWindows(windows.toList())
+    }
+  }
+
+  private fun ensureTabGroupForSystemWindow(systemWindowId: Int) {
+    GlobalScope.launch {
+      watRepository.getWatWindowBySystemId(systemWindowId)?.let {
+        tabGroupController.ensureGroup(it)
+      }
     }
   }
 
@@ -116,9 +131,13 @@ class ServiceWorker {
         } else {
           watRepository.addSystemWindow(window)
         }
+        ensureTabGroupForSystemWindow(window.id!!)
       },
     )
     onRemoved.addListener { systemWindowId ->
+      watRepository.getWatWindowBySystemId(systemWindowId)?.let {
+        tabGroupController.forgetGroup(it.id)
+      }
       watRepository.unbind(systemWindowId)
     }
     onFocusChanged.addListener { systemWindowId ->
@@ -142,9 +161,13 @@ class ServiceWorker {
   private fun observeTabs() {
     chrome.tabs.onCreated.addListener { tab ->
       updateWindowRepository()
+      ensureTabGroupForSystemWindow(tab.windowId)
     }
-    onUpdated.addListener { _, _, tab ->
+    onUpdated.addListener { _, changeInfo, tab ->
       updateWindowRepository()
+      if (changeInfo.groupId != null) {
+        ensureTabGroupForSystemWindow(tab.windowId)
+      }
       if (tabIndexToActivate != null) {
         val systemTabIdToActivate = watRepository.getWatWindowBySystemId(tab.windowId)?.tabs?.getOrNull(tabIndexToActivate!!)?.systemTabId
         if (systemTabIdToActivate != null) {
@@ -155,28 +178,44 @@ class ServiceWorker {
         }
       }
     }
-    chrome.tabs.onRemoved.addListener { _, _ ->
+    chrome.tabs.onRemoved.addListener { _, removeInfo ->
       GlobalScope.launch {
         // This event seems to be sent before the tab is actually removed.
         // So wait a bit before querying the windows.
-        delay(100)
+        delay(100.milliseconds)
         updateWindowRepository()
+        ensureTabGroupForSystemWindow(removeInfo.windowId)
       }
     }
     onMoved.addListener { _, _ ->
       updateWindowRepository()
     }
-    onAttached.addListener { _, _ ->
+    onAttached.addListener { _, attachInfo ->
       updateWindowRepository()
+      ensureTabGroupForSystemWindow(attachInfo.newWindowId)
     }
-    onDetached.addListener { _, _ ->
+    onDetached.addListener { _, detachInfo ->
       updateWindowRepository()
+      ensureTabGroupForSystemWindow(detachInfo.oldWindowId)
     }
     onReplaced.addListener { _, _ ->
       updateWindowRepository()
     }
     onActivated.addListener { activeInfo ->
       updateWindowRepository()
+    }
+  }
+
+  private fun observeTabGroups() {
+    // Creating a native group or deleting WAT's group must both converge back
+    // to WAT's one-group-per-window invariant.
+    onTabGroupCreated.addListener { group ->
+      updateWindowRepository()
+      ensureTabGroupForSystemWindow(group.windowId)
+    }
+    onTabGroupRemoved.addListener { group ->
+      updateWindowRepository()
+      ensureTabGroupForSystemWindow(group.windowId)
     }
   }
 
