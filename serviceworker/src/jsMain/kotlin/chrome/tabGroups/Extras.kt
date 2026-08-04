@@ -31,8 +31,3 @@ import kotlinx.js.JsPlainObject
 external interface QueryInfo {
   val windowId: Int?
 }
-
-@JsPlainObject
-external interface UpdateProperties {
-  val title: String?
-}

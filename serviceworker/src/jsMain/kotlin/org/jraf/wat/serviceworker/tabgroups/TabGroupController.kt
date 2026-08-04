@@ -31,7 +31,6 @@ import chrome.tabs.group
 import kotlinx.coroutines.await
 import org.jraf.wat.shared.model.WatWindow
 import chrome.tabGroups.QueryInfo as TabGroupQueryInfo
-import chrome.tabGroups.UpdateProperties as TabGroupUpdateProperties
 import chrome.tabGroups.query as queryTabGroups
 import chrome.tabGroups.update as updateTabGroup
 import chrome.tabs.QueryInfo as TabQueryInfo
@@ -44,6 +43,18 @@ import chrome.tabs.query as queryTabs
  * whenever the service worker starts again.
  */
 class TabGroupController {
+  private val groupColors = arrayOf(
+    "grey",
+    "blue",
+    "red",
+    "yellow",
+    "green",
+    "pink",
+    "purple",
+    "cyan",
+    "orange",
+  )
+
   private val groupIdsByWatWindowId = mutableMapOf<String, Int>()
   private val watWindowIdsBeingEnsured = mutableSetOf<String>()
   private val queuedWatWindows = mutableMapOf<String, WatWindow>()
@@ -79,10 +90,21 @@ class TabGroupController {
     val existingGroupId = findGroup(tabGroups, watWindow)
     val groupId = existingGroupId
       ?: group(GroupOptions(tabIds = tabIds, groupId = null)).await().also {
-        updateTabGroup(it, TabGroupUpdateProperties(title = watWindow.name)).await()
+        updateTabGroup(
+          it,
+          updateProperties(
+            title = watWindow.name,
+            color = colorFor(watWindow.name),
+          ),
+        ).await()
       }
 
     groupIdsByWatWindowId[watWindow.id] = groupId
+
+    val existingGroup = tabGroups.firstOrNull { it.id == groupId }
+    if (existingGroup != null && existingGroup.color != colorFor(watWindow.name)) {
+      updateTabGroup(groupId, updateProperties(color = colorFor(watWindow.name))).await()
+    }
 
     // Regrouping all tabs deliberately dissolves any independently-created
     // groups in this window, which is WAT's ownership policy.
@@ -110,5 +132,17 @@ class TabGroupController {
     // A service worker restart loses the in-memory id. The matching title is
     // the best cross-browser recovery signal because ids are not persistent.
     return tabGroups.firstOrNull { it.title == watWindow.name }?.id
+  }
+
+  private fun colorFor(name: String): String {
+    // Use ushr 1 because hashCode can be negative
+    return groupColors[(name.hashCode() ushr 1) % groupColors.size]
+  }
+
+  private fun updateProperties(title: String? = null, color: String? = null): dynamic {
+    val result = js("{}")
+    if (title != null) result.title = title
+    if (color != null) result.color = color
+    return result
   }
 }

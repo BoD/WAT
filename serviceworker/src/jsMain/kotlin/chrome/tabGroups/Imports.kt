@@ -33,11 +33,12 @@ external interface TabGroup {
   val id: Int
   val windowId: Int
   val title: String?
+  val color: String
 }
 
 external fun query(queryInfo: QueryInfo): Promise<Array<TabGroup>>
 
-external fun update(groupId: Int, updateProperties: UpdateProperties): Promise<TabGroup>
+external fun update(groupId: Int, updateProperties: dynamic): Promise<TabGroup>
 
 external val onCreated: OnCreated
 
