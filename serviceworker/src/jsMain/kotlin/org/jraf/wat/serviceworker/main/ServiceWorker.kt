@@ -72,11 +72,16 @@ import kotlin.time.Duration.Companion.milliseconds
 import chrome.tabGroups.onCreated as onTabGroupCreated
 import chrome.tabGroups.onRemoved as onTabGroupRemoved
 import chrome.tabGroups.onUpdated as onTabGroupUpdated
+import chrome.windows.remove as removeWindow
 
 class ServiceWorker {
   private val watRepository = WatRepository()
-  private val tabGroupController = TabGroupController(watRepository::setSystemTabGroupId)
+  private val tabGroupController = TabGroupController(
+    onSystemTabGroupIdChanged = watRepository::setSystemTabGroupId,
+    shouldSkipEnsuring = { it in systemWindowIdsWithRemovedWatGroup },
+  )
   private val systemWindowIdsBeingEnsured = mutableSetOf<Int>()
+  private val systemWindowIdsWithRemovedWatGroup = mutableSetOf<Int>()
 
   private val messenger = Messenger()
 
@@ -162,6 +167,7 @@ class ServiceWorker {
       },
     )
     onRemoved.addListener { systemWindowId ->
+      systemWindowIdsWithRemovedWatGroup.remove(systemWindowId)
       watRepository.getWatWindowBySystemId(systemWindowId)?.let {
         tabGroupController.forgetGroup(it.id)
       }
@@ -206,7 +212,15 @@ class ServiceWorker {
       }
     }
     chrome.tabs.onRemoved.addListener { _, removeInfo ->
+      val shouldCloseWindow = systemWindowIdsWithRemovedWatGroup.remove(removeInfo.windowId)
       GlobalScope.launch {
+        if (shouldCloseWindow) {
+          // Chrome replaces the last closed grouped tab with a blank tab.
+          // Closing its window preserves the native last-tab behavior.
+          delay(100.milliseconds)
+          runCatching { removeWindow(removeInfo.windowId).await() }
+          return@launch
+        }
         // This event seems to be sent before the tab is actually removed.
         // So wait a bit before querying the windows.
         delay(100.milliseconds)
@@ -241,8 +255,19 @@ class ServiceWorker {
       ensureTabGroupForSystemWindow(group.windowId)
     }
     onTabGroupRemoved.addListener { group ->
+      val watWindow = watRepository.getWatWindowBySystemId(group.windowId)
+      val removedWatGroup = watWindow != null && tabGroupController.isManagedGroup(watWindow, group.id)
+      if (removedWatGroup) {
+        systemWindowIdsWithRemovedWatGroup += group.windowId
+      }
       updateWindowRepository()
-      ensureTabGroupForSystemWindow(group.windowId)
+      GlobalScope.launch {
+        // Wait to learn whether the group disappeared because its final tab
+        // was closed. If not, this was a manual group removal to restore.
+        delay(100.milliseconds)
+        if (removedWatGroup && !systemWindowIdsWithRemovedWatGroup.remove(group.windowId)) return@launch
+        ensureTabGroupForSystemWindow(group.windowId)
+      }
     }
     onTabGroupUpdated.addListener { group ->
       GlobalScope.launch {

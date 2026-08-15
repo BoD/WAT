@@ -44,6 +44,7 @@ import chrome.tabs.query as queryTabs
  */
 class TabGroupController(
   private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Int) -> Unit,
+  private val shouldSkipEnsuring: (systemWindowId: Int) -> Boolean,
 ) {
   private val groupColors = arrayOf(
     "grey",
@@ -86,11 +87,13 @@ class TabGroupController(
 
   private suspend fun ensureGroupOnce(watWindow: WatWindow): Boolean {
     val systemWindowId = watWindow.systemWindowId ?: return false
+    if (shouldSkipEnsuring(systemWindowId)) return true
     val tabs = queryTabs(TabQueryInfo(windowId = systemWindowId)).await()
     if (tabs.isEmpty()) return false
 
     val tabIds = tabs.map { it.id }.toTypedArray()
     val tabGroups = queryTabGroups(TabGroupQueryInfo(windowId = systemWindowId)).await()
+    if (shouldSkipEnsuring(systemWindowId)) return true
     val existingGroupId = findGroup(tabGroups, watWindow)
     val groupId = existingGroupId
       ?: group(GroupOptions(tabIds = tabIds, groupId = null)).await().also {
@@ -148,7 +151,11 @@ class TabGroupController(
   }
 
   fun isManagedGroup(watWindow: WatWindow, tabGroup: TabGroup): Boolean {
-    return tabGroup.id == groupIdsByWatWindowId[watWindow.id] || tabGroup.id == watWindow.systemTabGroupId
+    return isManagedGroup(watWindow, tabGroup.id)
+  }
+
+  fun isManagedGroup(watWindow: WatWindow, systemTabGroupId: Int): Boolean {
+    return systemTabGroupId == groupIdsByWatWindowId[watWindow.id] || systemTabGroupId == watWindow.systemTabGroupId
   }
 
   suspend fun ensureColor(watWindow: WatWindow, tabGroup: TabGroup) {
