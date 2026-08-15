@@ -80,7 +80,9 @@ class Popup {
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
       val snackBarSpec: SnackBarSpec? by snackBarSpec.collectAsState()
-      WindowList(watWindows)
+      // Keep the persisted order within each section, while showing currently
+      // open windows before saved, closed ones.
+      WindowList(watWindows.sortedBy { !it.isBound })
       SettingsDialog()
       if (snackBarSpec != null) {
         SnackBar(snackBarSpec!!)
