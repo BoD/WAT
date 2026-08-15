@@ -385,7 +385,10 @@ class Popup {
     Span(
       attrs = {
         classes("actionIcon")
-        onClick(onClick)
+        onClick { event ->
+          event.stopPropagation()
+          onClick(event)
+        }
       },
     ) {
       Text(icon)

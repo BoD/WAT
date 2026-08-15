@@ -364,7 +364,10 @@ class ServiceWorker {
       GlobalScope.launch {
         chrome.windows.update(watWindow.systemWindowId!!, UpdateInfo(focused = true)).await()
         if (tabIndex != null) {
-          update(watWindow.tabs[tabIndex].systemTabId!!, UpdateProperties(active = true)).await()
+          watWindow.tabs.getOrNull(tabIndex)?.systemTabId?.let { systemTabId ->
+            // The tab may have been closed after the popup rendered it.
+            runCatching { update(systemTabId, UpdateProperties(active = true)).await() }
+          }
         }
       }
     } else {
