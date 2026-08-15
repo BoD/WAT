@@ -102,15 +102,7 @@ class WatRepository {
       .map { systemWindow ->
         WatWindow(
           id = Uuid.random().toHexString(),
-          name = Date().toLocaleString(
-            options = dateLocaleOptions {
-              year = "numeric"
-              month = "short"
-              day = "2-digit"
-              hour = "2-digit"
-              minute = "2-digit"
-            },
-          ),
+          name = temporaryWindowName(),
           isSaved = false,
           systemWindowId = systemWindow.id!!,
           focused = systemWindow.focused,
@@ -328,3 +320,11 @@ class WatRepository {
     return true
   }
 }
+
+private fun temporaryWindowName(): String {
+  val date = Date()
+  return "${date.getFullYear()}-${(date.getMonth() + 1).twoDigits()}-${date.getDate().twoDigits()} " +
+    "${date.getHours().twoDigits()}:${date.getMinutes().twoDigits()}"
+}
+
+private fun Int.twoDigits(): String = toString().padStart(length = 2, padChar = '0')
