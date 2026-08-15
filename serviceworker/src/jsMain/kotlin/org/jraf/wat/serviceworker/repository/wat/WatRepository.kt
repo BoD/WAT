@@ -76,6 +76,7 @@ class WatRepository {
             systemWindowId = null,
             systemTabGroupId = null,
             focused = false,
+            treeExpanded = false,
             tabs = it.tabs.map { tab ->
               tab.copy(
                 systemTabId = null,
