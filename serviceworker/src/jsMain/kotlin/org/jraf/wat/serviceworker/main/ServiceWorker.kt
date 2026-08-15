@@ -72,6 +72,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import chrome.tabGroups.onCreated as onTabGroupCreated
 import chrome.tabGroups.onRemoved as onTabGroupRemoved
 import chrome.tabGroups.onUpdated as onTabGroupUpdated
+import chrome.tabs.QueryInfo as TabQueryInfo
+import chrome.tabs.query as queryTabs
 import chrome.windows.remove as removeWindow
 
 class ServiceWorker {
@@ -216,9 +218,8 @@ class ServiceWorker {
       GlobalScope.launch {
         if (shouldCloseWindow) {
           // Chrome replaces the last closed grouped tab with a blank tab.
-          // Closing its window preserves the native last-tab behavior.
-          delay(100.milliseconds)
-          runCatching { removeWindow(removeInfo.windowId).await() }
+          // Wait until the replacement has a definite URL.
+          closeWindowIfStillBlankNewTab(removeInfo.windowId)
           return@launch
         }
         // This event seems to be sent before the tab is actually removed.
@@ -422,6 +423,25 @@ class ServiceWorker {
     val systemTabId = watRepository.getWatWindow(watWindowId)?.tabs?.getOrNull(tabIndex)?.systemTabId ?: return
     GlobalScope.launch {
       chrome.tabs.remove(systemTabId).await()
+    }
+  }
+}
+
+private suspend fun closeWindowIfStillBlankNewTab(systemWindowId: Int) {
+  repeat(10) {
+    delay(100.milliseconds)
+    val tabs = runCatching { queryTabs(TabQueryInfo(windowId = systemWindowId)).await() }.getOrNull() ?: return
+    if (tabs.size != 1) return
+
+    val url = tabs.single().url
+    when {
+      url.isBlank() -> Unit
+      url == "chrome://newtab/" || url == "about:newtab" -> {
+        runCatching { removeWindow(systemWindowId).await() }
+        return
+      }
+
+      else -> return
     }
   }
 }
