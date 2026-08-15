@@ -275,14 +275,28 @@ class ServiceWorker {
         val watWindow = watRepository.getWatWindowBySystemId(group.windowId) ?: return@launch
         if (!tabGroupController.isManagedGroup(watWindow, group)) return@launch
 
-        val newName = group.title.orEmpty()
-        val updatedWatWindow = if (newName != watWindow.name) {
+        // Ignore the update emitted when WAT creates or maintains the
+        // temporary-window asterisk. A different title is a user rename.
+        if (!watWindow.isSaved && tabGroupController.hasExpectedTitle(watWindow, group)) {
+          tabGroupController.ensurePresentation(watWindow, group)
+          return@launch
+        }
+
+        val newName = if (watWindow.isSaved) {
+          group.title.orEmpty()
+        } else {
+          group.title.orEmpty().removeSuffix(" *")
+        }
+        val updatedWatWindow = if (!watWindow.isSaved) {
+          watRepository.saveWindow(watWindow.id, newName)
+          watWindow.copy(name = newName, isSaved = true)
+        } else if (newName != watWindow.name) {
           watRepository.renameWindow(watWindow.id, newName)
           watWindow.copy(name = newName)
         } else {
           watWindow
         }
-        tabGroupController.ensureColor(updatedWatWindow, group)
+        tabGroupController.ensurePresentation(updatedWatWindow, group)
       }
     }
   }
@@ -300,15 +314,15 @@ class ServiceWorker {
 
         is SaveWatWindowMessage -> {
           GlobalScope.launch {
-            val watWindow = watRepository.getWatWindow(message.watWindowId) ?: return@launch
             watRepository.saveWindow(watWindowId = message.watWindowId, name = message.windowName)
-            tabGroupController.renameGroup(watWindow, message.windowName)
+            watRepository.getWatWindow(message.watWindowId)?.let { tabGroupController.renameGroup(it) }
           }
         }
 
         is UnsaveWatWindowMessage -> {
           GlobalScope.launch {
             watRepository.unsaveWindow(watWindowId = message.watWindowId)
+            watRepository.getWatWindow(message.watWindowId)?.let { tabGroupController.renameGroup(it) }
           }
         }
 

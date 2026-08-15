@@ -100,7 +100,7 @@ class TabGroupController(
         updateTabGroup(
           it,
           updateProperties(
-            title = watWindow.name,
+            title = groupTitleFor(watWindow),
             color = colorFor(watWindow.name),
           ),
         ).await()
@@ -109,9 +109,7 @@ class TabGroupController(
     rememberGroup(watWindow, groupId)
 
     val existingGroup = tabGroups.firstOrNull { it.id == groupId }
-    if (existingGroup != null && existingGroup.color != colorFor(watWindow.name)) {
-      updateTabGroup(groupId, updateProperties(color = colorFor(watWindow.name))).await()
-    }
+    if (existingGroup != null) ensurePresentation(watWindow, existingGroup)
 
     // Regrouping all tabs deliberately dissolves any independently-created
     // groups in this window, which is WAT's ownership policy.
@@ -131,23 +129,17 @@ class TabGroupController(
     queuedWatWindows.remove(watWindowId)
   }
 
-  suspend fun renameGroup(watWindow: WatWindow, newName: String) {
+  suspend fun renameGroup(watWindow: WatWindow) {
     val systemWindowId = watWindow.systemWindowId ?: return
     val tabGroups = queryTabGroups(TabGroupQueryInfo(windowId = systemWindowId)).await()
     val groupId = findGroup(tabGroups, watWindow)
     if (groupId == null) {
-      ensureGroup(watWindow.copy(name = newName))
+      ensureGroup(watWindow)
       return
     }
 
     rememberGroup(watWindow, groupId)
-    updateTabGroup(
-      groupId,
-      updateProperties(
-        title = newName,
-        color = colorFor(newName),
-      ),
-    ).await()
+    tabGroups.firstOrNull { it.id == groupId }?.let { ensurePresentation(watWindow, it) }
   }
 
   fun isManagedGroup(watWindow: WatWindow, tabGroup: TabGroup): Boolean {
@@ -158,9 +150,21 @@ class TabGroupController(
     return systemTabGroupId == groupIdsByWatWindowId[watWindow.id] || systemTabGroupId == watWindow.systemTabGroupId
   }
 
-  suspend fun ensureColor(watWindow: WatWindow, tabGroup: TabGroup) {
-    if (isManagedGroup(watWindow, tabGroup) && tabGroup.color != colorFor(watWindow.name)) {
-      updateTabGroup(tabGroup.id, updateProperties(color = colorFor(watWindow.name))).await()
+  fun hasExpectedTitle(watWindow: WatWindow, tabGroup: TabGroup): Boolean =
+    tabGroup.title == groupTitleFor(watWindow)
+
+  suspend fun ensurePresentation(watWindow: WatWindow, tabGroup: TabGroup) {
+    if (
+      isManagedGroup(watWindow, tabGroup) &&
+      (tabGroup.title != groupTitleFor(watWindow) || tabGroup.color != colorFor(watWindow.name))
+    ) {
+      updateTabGroup(
+        tabGroup.id,
+        updateProperties(
+          title = groupTitleFor(watWindow),
+          color = colorFor(watWindow.name),
+        ),
+      ).await()
     }
   }
 
@@ -175,7 +179,7 @@ class TabGroupController(
 
     // Group ids change on browser session restore, so title matching is the
     // cross-browser fallback when the persisted id is no longer valid.
-    return tabGroups.firstOrNull { it.title == watWindow.name }?.id
+    return tabGroups.firstOrNull { it.title == groupTitleFor(watWindow) }?.id
   }
 
   private suspend fun rememberGroup(watWindow: WatWindow, groupId: Int) {
@@ -189,6 +193,9 @@ class TabGroupController(
     // Use ushr 1 because hashCode can be negative
     return groupColors[(name.hashCode() ushr 1) % groupColors.size]
   }
+
+  private fun groupTitleFor(watWindow: WatWindow): String =
+    watWindow.name + if (watWindow.isSaved) "" else " *"
 
   private fun updateProperties(title: String? = null, color: String? = null): dynamic {
     val result = js("{}")

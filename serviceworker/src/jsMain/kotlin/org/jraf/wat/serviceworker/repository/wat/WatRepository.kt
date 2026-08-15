@@ -323,7 +323,7 @@ class WatRepository {
 
 private fun temporaryWindowName(): String {
   val date = Date()
-  return "${date.getFullYear()}-${(date.getMonth() + 1).twoDigits()}-${date.getDate().twoDigits()} " +
+  return "${date.getFullYear()}-${(date.getMonth() + 1).twoDigits()}-${date.getDate().twoDigits()} " +
     "${date.getHours().twoDigits()}:${date.getMinutes().twoDigits()}"
 }
 
