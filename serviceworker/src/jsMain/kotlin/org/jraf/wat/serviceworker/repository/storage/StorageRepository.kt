@@ -37,11 +37,12 @@ import org.jraf.wat.shared.model.WatWindow
 
 class StorageRepository {
   suspend fun loadWatWindowsFromStorageMinusSystemWindows(): List<WatWindow> {
-    val watWindowsFromStorage = loadWatWindowsFromStorage() ?: return emptyList()
-    // Remove any saved system window ids that don't currently exist
+    val savedWatWindows = loadSavedWatWindows() ?: emptyList()
+    val unsavedWatWindows = loadUnsavedWatWindows() ?: emptyList()
     val systemWindowIds = getAll(QueryOptions(populate = false, windowTypes = arrayOf(WindowType.normal))).await()
       .mapNotNull { it.id }
-    return watWindowsFromStorage.map {
+
+    val savedWindowsWithCurrentSystemIds = savedWatWindows.map {
       if (!systemWindowIds.contains(it.systemWindowId)) {
         it.copy(
           systemWindowId = null,
@@ -51,9 +52,13 @@ class StorageRepository {
         it
       }
     }
+    // Unsaved windows only exist for the current browser session, so discard
+    // any leftover entry whose native window no longer exists.
+    val unsavedWindowsWithCurrentSystemIds = unsavedWatWindows.filter { it.systemWindowId in systemWindowIds }
+    return savedWindowsWithCurrentSystemIds + unsavedWindowsWithCurrentSystemIds
   }
 
-  private suspend fun loadWatWindowsFromStorage(): List<WatWindow>? {
+  private suspend fun loadSavedWatWindows(): List<WatWindow>? {
     val items = chrome.storage.local.get("StorageRoot").await()
     val obj = items.StorageRoot
     return if (obj == undefined) {
@@ -61,19 +66,36 @@ class StorageRepository {
     } else {
       val storageRoot: StorageRoot = toKotlin(obj)
       storageRoot.windows.map { storageWindow ->
-        storageWindow.toWatWindow()
+        storageWindow.toWatWindow(isSaved = true)
       }
     }
   }
 
-  suspend fun saveWatWindows(watWindows: List<WatWindow>) {
+  private suspend fun loadUnsavedWatWindows(): List<WatWindow>? {
+    val items = chrome.storage.session.get("SessionStorageRoot").await()
+    val obj = items.SessionStorageRoot
+    return if (obj == undefined) {
+      null
+    } else {
+      val storageRoot: StorageRoot = toKotlin(obj)
+      storageRoot.windows.map { storageWindow ->
+        storageWindow.toWatWindow(isSaved = false)
+      }
+    }
+  }
+
+  suspend fun saveWatWindows(savedWatWindows: List<WatWindow>, unsavedWatWindows: List<WatWindow>) {
     val obj = js("{}")
-    obj.StorageRoot = StorageRoot(windows = watWindows.map { it.toStorageWindow() }).toDynamic()
+    obj.StorageRoot = StorageRoot(windows = savedWatWindows.map { it.toStorageWindow() }).toDynamic()
     chrome.storage.local.set(obj).await()
+
+    val sessionObj = js("{}")
+    sessionObj.SessionStorageRoot = StorageRoot(windows = unsavedWatWindows.map { it.toStorageWindow() }).toDynamic()
+    chrome.storage.session.set(sessionObj).await()
   }
 }
 
-private fun StorageWindow.toWatWindow(): WatWindow {
+private fun StorageWindow.toWatWindow(isSaved: Boolean): WatWindow {
   return WatWindow(
     id = id,
     systemWindowId = systemWindowId,
@@ -82,7 +104,7 @@ private fun StorageWindow.toWatWindow(): WatWindow {
     left = left,
     width = width,
     height = height,
-    isSaved = true,
+    isSaved = isSaved,
     focused = false,
     tabs = tabs.map { it.toWatTab() },
     treeExpanded = treeExpanded,

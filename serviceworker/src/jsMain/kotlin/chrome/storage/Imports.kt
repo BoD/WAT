@@ -30,6 +30,7 @@ package chrome.storage
 import kotlin.js.Promise
 
 external val local: StorageArea
+external val session: StorageArea
 external val sync: StorageArea
 
 external interface StorageArea {

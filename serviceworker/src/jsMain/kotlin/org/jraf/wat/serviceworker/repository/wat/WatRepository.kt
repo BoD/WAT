@@ -28,9 +28,10 @@ package org.jraf.wat.serviceworker.repository.wat
 import chrome.windows.Window
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.jraf.klibnanolog.logd
 import org.jraf.wat.serviceworker.repository.storage.StorageRepository
 import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
@@ -42,17 +43,22 @@ class WatRepository {
   private val storageRepository = StorageRepository()
 
   private var isInitialized = false
+  private val initializationMutex = Mutex()
 
   private val _watWindows: MutableStateFlow<List<WatWindow>> = MutableStateFlow(emptyList())
   val watWindows: StateFlow<List<WatWindow>> = _watWindows
 
   suspend fun init() {
     if (isInitialized) return
-    _watWindows.value = storageRepository.loadWatWindowsFromStorageMinusSystemWindows()
-    isInitialized = true
+    initializationMutex.withLock {
+      if (isInitialized) return@withLock
+      _watWindows.value = storageRepository.loadWatWindowsFromStorageMinusSystemWindows()
+      isInitialized = true
+    }
   }
 
-  fun bind(watWindowId: String, systemWindow: Window) {
+  suspend fun bind(watWindowId: String, systemWindow: Window) {
+    init()
     val watWindow = getWindow(watWindowId)
     check(watWindow != null) { "WatWindow $watWindowId not found" }
     check(!watWindow.isBound) { "WatWindow $watWindowId is already bound to a system window" }
@@ -68,7 +74,8 @@ class WatRepository {
     }
   }
 
-  fun unbind(systemWindowId: Int) {
+  suspend fun unbind(systemWindowId: Int) {
+    init()
     _watWindows.value = _watWindows.value.mapNotNull {
       if (it.systemWindowId == systemWindowId) {
         if (it.isSaved) {
@@ -91,9 +98,11 @@ class WatRepository {
         it
       }
     }
+    saveWindows()
   }
 
-  fun addSystemWindows(systemWindows: List<Window>) {
+  suspend fun addSystemWindows(systemWindows: List<Window>) {
+    init()
     _watWindows.value += systemWindows
       // Ignore windows that are already bound
       .filterNot {
@@ -122,13 +131,15 @@ class WatRepository {
           treeExpanded = true,
         )
       }
+    saveWindows()
   }
 
-  fun addSystemWindow(systemWindow: Window) {
+  suspend fun addSystemWindow(systemWindow: Window) {
     addSystemWindows(listOf(systemWindow))
   }
 
   suspend fun saveWindow(watWindowId: String, name: String) {
+    init()
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {
         it.copy(
@@ -143,6 +154,7 @@ class WatRepository {
   }
 
   suspend fun renameWindow(watWindowId: String, name: String) {
+    init()
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {
         it.copy(name = name)
@@ -154,6 +166,7 @@ class WatRepository {
   }
 
   suspend fun setSystemTabGroupId(watWindowId: String, systemTabGroupId: Int) {
+    init()
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {
         it.copy(systemTabGroupId = systemTabGroupId)
@@ -169,6 +182,7 @@ class WatRepository {
    * If the window isn't bound, it is also removed from the list.
    */
   suspend fun unsaveWindow(watWindowId: String) {
+    init()
     _watWindows.value = _watWindows.value.mapNotNull {
       if (it.id == watWindowId) {
         if (it.isBound) {
@@ -187,17 +201,15 @@ class WatRepository {
 
   private suspend fun saveWindows() {
     storageRepository.saveWatWindows(
-      _watWindows.value.filter { it.isSaved },
+      savedWatWindows = _watWindows.value.filter { it.isSaved },
+      unsavedWatWindows = _watWindows.value.filterNot { it.isSaved },
     )
   }
 
   private fun getWindow(watWindowId: String): WatWindow? = _watWindows.value.firstOrNull { it.id == watWindowId }
 
   suspend fun updateWatWindows(systemWindows: List<Window>) {
-    if (!isInitialized) {
-      logd("Not initialized, calling init()")
-      init()
-    }
+    init()
     // When activating a popup (including THE popup of this extension), we'll get a list of windows which are all unfocused.
     // When that happens, just keep the current focus state.
     val atLeastOneSystemWindowFocused = systemWindows.any { it.focused }
@@ -234,6 +246,7 @@ class WatRepository {
   fun getWatWindowBySystemId(systemWindowId: Int): WatWindow? = watWindows.value.firstOrNull { it.systemWindowId == systemWindowId }
 
   suspend fun setTreeExpanded(watWindowId: String, treeExpanded: Boolean) {
+    init()
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {
         it.copy(treeExpanded = treeExpanded)
@@ -245,6 +258,7 @@ class WatRepository {
   }
 
   suspend fun reorderWatWindows(toReorderWatWindowId: String, relativeToWatWindowId: String, isBefore: Boolean) {
+    init()
     val toReorderWatWindow = getWindow(toReorderWatWindowId) ?: return
     val relativeToWatWindow = getWindow(relativeToWatWindowId) ?: return
     if (toReorderWatWindow == relativeToWatWindow) return
@@ -287,6 +301,7 @@ class WatRepository {
   }
 
   suspend fun import(importJsonString: String): Boolean {
+    init()
     val exportWindows = try {
       Json.decodeFromString<List<ExportWindow>>(importJsonString)
     } catch (e: Exception) {

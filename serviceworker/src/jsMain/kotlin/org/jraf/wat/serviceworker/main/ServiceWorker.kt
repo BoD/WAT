@@ -110,6 +110,7 @@ class ServiceWorker {
     watRepository.init()
     val windows = getAll(QueryOptions(populate = true, windowTypes = arrayOf(WindowType.normal))).await()
     watRepository.addSystemWindows(windows.toList())
+    watRepository.updateWatWindows(windows.toList())
     tabGroupController.ensureGroups(watRepository.watWindows.value)
   }
 
@@ -159,13 +160,16 @@ class ServiceWorker {
         // Only consider normal windows
         if (window.type != WindowType.normal) return@addListener
 
-        if (watWindowIdToBind != null) {
-          watRepository.bind(watWindowId = watWindowIdToBind!!, systemWindow = window)
-          watWindowIdToBind = null
-        } else {
-          watRepository.addSystemWindow(window)
+        val watWindowIdToBind = watWindowIdToBind
+        this.watWindowIdToBind = null
+        GlobalScope.launch {
+          if (watWindowIdToBind != null) {
+            watRepository.bind(watWindowId = watWindowIdToBind, systemWindow = window)
+          } else {
+            watRepository.addSystemWindow(window)
+          }
+          ensureTabGroupForSystemWindow(window.id!!)
         }
-        ensureTabGroupForSystemWindow(window.id!!)
       },
     )
     onRemoved.addListener { systemWindowId ->
@@ -173,7 +177,9 @@ class ServiceWorker {
       watRepository.getWatWindowBySystemId(systemWindowId)?.let {
         tabGroupController.forgetGroup(it.id)
       }
-      watRepository.unbind(systemWindowId)
+      GlobalScope.launch {
+        watRepository.unbind(systemWindowId)
+      }
     }
     onFocusChanged.addListener { systemWindowId ->
       GlobalScope.launch {
