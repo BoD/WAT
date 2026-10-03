@@ -34,6 +34,7 @@ external fun get(tabId: Int): Promise<Tab?>
 external interface Tab {
   val id: Int
   val windowId: Int
+  val groupId: Int
   val active: Boolean
   val url: String
   val title: String
@@ -137,6 +138,7 @@ external interface ChangeInfo {
   val url: String?
   val title: String?
   val favIconUrl: String?
+  val groupId: Int?
   val discarded: Boolean?
   val status: String?
 }
@@ -144,3 +146,7 @@ external interface ChangeInfo {
 external fun update(tabId: Int, updateProperties: UpdateProperties): Promise<Tab>
 
 external fun remove(tabId: Int): Promise<Unit>
+
+external fun query(queryInfo: QueryInfo): Promise<Array<Tab>>
+
+external fun group(groupOptions: GroupOptions): Promise<Int>

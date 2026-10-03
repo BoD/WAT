@@ -31,3 +31,14 @@ import kotlinx.js.JsPlainObject
 external interface UpdateProperties {
   val active: Boolean?
 }
+
+@JsPlainObject
+external interface QueryInfo {
+  val windowId: Int?
+}
+
+@JsPlainObject
+external interface GroupOptions {
+  val tabIds: Array<Int>?
+  val groupId: Int?
+}

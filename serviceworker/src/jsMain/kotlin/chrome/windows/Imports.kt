@@ -76,3 +76,5 @@ external interface Window {
 external fun create(createData: CreateData): Promise<Window>
 
 external fun update(windowId: Int, updateInfo: UpdateInfo): Promise<Window>
+
+external fun remove(windowId: Int): Promise<Unit>
