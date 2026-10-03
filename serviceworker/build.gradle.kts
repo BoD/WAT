@@ -8,10 +8,13 @@ plugins {
 val replaceVersionInManifestTask: TaskProvider<Task> = tasks.register("replaceVersionInManifest") {
   val manifestFile = layout.projectDirectory.dir("src/manifest.json").asFile
   val outputDir = layout.buildDirectory.dir("generated/resources").get().asFile
+  val version = rootProject.version.toString()
+  inputs.file(manifestFile)
+  inputs.property("version", version)
   outputs.dir(outputDir)
   doFirst {
     val contents = manifestFile.readText()
-      .replace("{VERSION}", rootProject.version.toString())
+      .replace("{VERSION}", version)
     File(outputDir, "manifest.json").writeText(contents)
   }
 }
