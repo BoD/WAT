@@ -21,7 +21,13 @@ val generateVersionKtTask: TaskProvider<Task> = tasks.register("generateVersionK
 
 kotlin {
   js {
-    browser()
+    browser {
+      commonWebpackConfig {
+        // Extension CSP forbids eval-based source maps.
+        // See https://stackoverflow.com/questions/48047150/chrome-extension-compiled-by-webpack-throws-unsafe-eval-error
+        devtool = "cheap-module-source-map"
+      }
+    }
     compilerOptions {
       target.set("es2015")
       optIn.addAll("kotlinx.coroutines.DelicateCoroutinesApi", "kotlinx.serialization.ExperimentalSerializationApi")

@@ -35,7 +35,6 @@ import kotlinx.serialization.json.Json
 import org.jraf.wat.serviceworker.repository.storage.StorageRepository
 import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
-import org.jraf.wat.shared.util.decodeSuspended
 import kotlin.js.Date
 import kotlin.uuid.Uuid
 
@@ -292,7 +291,7 @@ class WatRepository {
               if (tab.url.startsWith("chrome://")) {
                 null
               } else {
-                tab.url.decodeSuspended()
+                tab.url
               }
             },
           )
