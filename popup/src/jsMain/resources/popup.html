@@ -35,6 +35,63 @@
       user-select: none;
     }
 
+    #root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .windowFilter {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: var(--smallWidth);
+    }
+
+    .windowFilter input {
+      box-sizing: border-box;
+      flex: 1;
+      min-width: 0;
+      padding: calc(var(--smallWidth) * 2);
+      padding-right: calc(var(--mediumWidth) * 2);
+      border: 1px solid var(--unboundColor);
+      border-radius: var(--borderRadius);
+      background-color: var(--focusedWindowBgColor);
+      color: var(--boundColor);
+      font: inherit;
+    }
+
+    .windowFilter .actionIcon {
+      position: absolute;
+      top: var(--smallWidth);
+      bottom: var(--smallWidth);
+      right: calc(var(--smallWidth) * 2);
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .windowList {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .noMatchingWindows {
+      padding: calc(var(--smallWidth) * 2);
+      color: var(--unboundColor);
+    }
+
+    .filterMatch {
+      background-color: #ffd966;
+      color: black;
+      -webkit-text-fill-color: black;
+      font-weight: bold;
+      border-radius: .15rem;
+    }
+
     ul {
       padding: 0;
       position: relative;

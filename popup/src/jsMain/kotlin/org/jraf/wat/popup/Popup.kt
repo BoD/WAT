@@ -55,8 +55,8 @@ import org.jraf.klibnanolog.logd
 import org.jraf.wat.shared.messaging.Messenger
 import org.jraf.wat.shared.messaging.PublishWatWindowsMessage
 import org.jraf.wat.shared.messaging.asMessage
+import org.jraf.wat.shared.model.WatTab
 import org.jraf.wat.shared.model.WatWindow
-import org.jraf.wat.shared.util.decodeSuspended
 import org.w3c.dom.HTMLDialogElement
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.NEAREST
@@ -65,6 +65,7 @@ import org.w3c.dom.ScrollBehavior
 import org.w3c.dom.ScrollIntoViewOptions
 import org.w3c.dom.ScrollLogicalPosition
 import kotlin.js.Date
+import kotlin.time.Duration.Companion.milliseconds
 
 class Popup {
   private val messenger = Messenger()
@@ -80,9 +81,38 @@ class Popup {
     renderComposable(rootElementId = "root") {
       val watWindows: List<WatWindow> by watWindows.collectAsState()
       val snackBarSpec: SnackBarSpec? by snackBarSpec.collectAsState()
-      // Keep the persisted order within each section, while showing currently
-      // open windows before saved, closed ones.
-      WindowList(watWindows.sortedBy { !it.isBound })
+      var windowFilter by remember { mutableStateOf("") }
+      Div(attrs = { classes("windowFilter") }) {
+        TextInput(value = windowFilter) {
+          attr("placeholder", "Filter")
+          attr("aria-label", "Filter")
+          onInput { windowFilter = it.value }
+          onKeyUp {
+            if (it.key == "Escape") windowFilter = ""
+          }
+        }
+        if (windowFilter.isNotEmpty()) {
+          ActionIcon("✖️") {
+            windowFilter = ""
+          }
+        }
+      }
+      Div(attrs = { classes("windowList") }) {
+        val filter = windowFilter.trim()
+        // Keep the persisted order within each section, while showing currently
+        // open windows before saved, closed ones.
+        val filteredWindows = watWindows
+          .filter { watWindow ->
+            watWindow.name.contains(filter, ignoreCase = true) || watWindow.tabs.any { it.matchesFilter(filter) }
+          }
+          .sortedBy { !it.isBound }
+        WindowList(filteredWindows, filter)
+        if (filteredWindows.isEmpty() && windowFilter.isNotBlank()) {
+          Div(attrs = { classes("noMatchingWindows") }) {
+            Text("No match")
+          }
+        }
+      }
       SettingsDialog()
       if (snackBarSpec != null) {
         SnackBar(snackBarSpec!!)
@@ -91,11 +121,13 @@ class Popup {
   }
 
   @Composable
-  private fun WindowList(watWindows: List<WatWindow>) {
+  private fun WindowList(watWindows: List<WatWindow>, filter: String) {
     var watWindowIdBeingEdited: String? by remember { mutableStateOf(null) }
     var watWindowNameBeingEdited: String? by remember { mutableStateOf(null) }
 
     for ((i, watWindow) in watWindows.withIndex()) {
+      val expandedForFilter = filter.isNotEmpty()
+      val treeExpanded = watWindow.treeExpanded || expandedForFilter
       Ul(
         attrs = {
           classes(
@@ -179,12 +211,14 @@ class Popup {
             attrs = {
               classes("treeExpander")
               onClick {
-                messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                if (!expandedForFilter) {
+                  messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                }
               }
             },
           ) {
             Text(
-              if (watWindow.treeExpanded) {
+              if (treeExpanded) {
                 "▾"
               } else {
                 "▸"
@@ -230,16 +264,18 @@ class Popup {
                   messenger.focusOrCreateWatWindow(watWindowId = watWindow.id, tabIndex = null)
                 }
                 onDoubleClick {
-                  messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                  if (!expandedForFilter) {
+                    messenger.setTreeExpanded(watWindowId = watWindow.id, treeExpanded = !watWindow.treeExpanded)
+                  }
                 }
               },
             ) {
-              Text(watWindow.name)
+              HighlightedText(watWindow.name, filter)
               if (!watWindow.isSaved) {
                 Text(" *")
               }
 
-              if (!watWindow.treeExpanded) {
+              if (!treeExpanded) {
                 Span(
                   attrs = {
                     classes("count")
@@ -294,7 +330,7 @@ class Popup {
         }
 
         // Tabs
-        if (watWindow.treeExpanded) {
+        if (treeExpanded) {
           for ((i, watTab) in watWindow.tabs.withIndex()) {
             Li(
               attrs = {
@@ -341,14 +377,20 @@ class Popup {
                     classes("name")
                   },
                 ) {
-                  Text(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…")
+                  HighlightedText(watTab.title.takeIf { it.isNotBlank() } ?: watTab.url.takeIf { it.isNotBlank() } ?: "Loading…", filter)
                 }
                 Span(
                   attrs = {
                     classes("url")
                   },
                 ) {
-                  Text(watTab.url.prettyUrl())
+                  // Keep the full URL while searching so formatting cannot hide a match.
+                  val displayedUrl = if (filter.isEmpty()) {
+                    watTab.url.prettyUrl()
+                  } else {
+                    watTab.url.prettyUrl().takeIf { it.contains(filter, ignoreCase = true) } ?: watTab.url
+                  }
+                  HighlightedText(displayedUrl, filter)
                 }
               }
 
@@ -369,6 +411,9 @@ class Popup {
       }
     }
 
+    // While searching, keep results in view rather than scrolling to an unrelated active tab.
+    if (filter.isNotEmpty()) return
+
     // Make sure active tab is visible
     val focusedWindow = watWindows.firstOrNull { it.focused } ?: return
     val activeTabIndex = focusedWindow.tabs.indexOfFirst { it.active }
@@ -377,6 +422,27 @@ class Popup {
         val tabElement = document.getElementById("watTab-${focusedWindow.id}-$activeTabIndex") ?: return@LaunchedEffect
         tabElement.scrollIntoView(ScrollIntoViewOptions(block = ScrollLogicalPosition.NEAREST, behavior = ScrollBehavior.SMOOTH))
       }
+    }
+  }
+
+  @Composable
+  private fun HighlightedText(text: String, filter: String) {
+    if (filter.isEmpty()) {
+      Text(text)
+      return
+    }
+    var start = 0
+    while (start < text.length) {
+      val match = text.indexOf(filter, startIndex = start, ignoreCase = true)
+      if (match == -1) {
+        Text(text.substring(start))
+        break
+      }
+      Text(text.substring(start, match))
+      Span(attrs = { classes("filterMatch") }) {
+        Text(text.substring(match, match + filter.length))
+      }
+      start = match + filter.length
     }
   }
 
@@ -455,7 +521,7 @@ class Popup {
       },
     ) {
       LaunchedEffect(snackBarSpec) {
-        delay(4000)
+        delay(4000.milliseconds)
         this@Popup.snackBarSpec.value = null
       }
       Text(snackBarSpec.message)
@@ -503,14 +569,18 @@ private class SnackBarSpec(
 }
 
 private fun String.prettyUrl(): String {
-  return decodeSuspended()
-    .removePrefix("https://")
+  return removePrefix("https://")
     .removePrefix("http://")
     .removePrefix("www.")
     .simplifyGitHub()
     // xyz.com -> xyz
     .replace(Regex("^([^/.]+)\\.com(.*)"), "$1$2")
     .replace("/", " / ")
+}
+
+private fun WatTab.matchesFilter(filter: String): Boolean {
+  return title.contains(filter, ignoreCase = true) ||
+    url.contains(filter, ignoreCase = true)
 }
 
 // github.com/$org/$proj/xxxx/y/z -> github/$proj/xxxx/y/z
