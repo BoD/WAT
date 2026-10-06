@@ -40,5 +40,5 @@ external interface QueryInfo {
 @JsPlainObject
 external interface GroupOptions {
   val tabIds: Array<Int>?
-  val groupId: Int?
+  val groupId: Double?
 }

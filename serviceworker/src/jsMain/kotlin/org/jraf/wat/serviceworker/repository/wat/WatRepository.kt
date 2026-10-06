@@ -164,7 +164,7 @@ class WatRepository {
     saveWindows()
   }
 
-  suspend fun setSystemTabGroupId(watWindowId: String, systemTabGroupId: Int) {
+  suspend fun setSystemTabGroupId(watWindowId: String, systemTabGroupId: Double) {
     init()
     _watWindows.value = _watWindows.value.map {
       if (it.id == watWindowId) {

@@ -41,7 +41,7 @@ data class WatWindow(
   val height: Int,
   val tabs: List<WatTab>,
   val treeExpanded: Boolean,
-  val systemTabGroupId: Int? = null,
+  val systemTabGroupId: Double? = null,
 ) {
   val isBound: Boolean
     get() = systemWindowId != null

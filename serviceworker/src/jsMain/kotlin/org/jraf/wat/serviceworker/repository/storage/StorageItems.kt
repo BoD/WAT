@@ -43,7 +43,7 @@ data class StorageWindow(
   val height: Int,
   val tabs: List<StorageTab>,
   val treeExpanded: Boolean,
-  val systemTabGroupId: Int? = null,
+  val systemTabGroupId: Double? = null,
 )
 
 @Serializable

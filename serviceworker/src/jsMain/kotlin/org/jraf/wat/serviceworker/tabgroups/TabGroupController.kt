@@ -43,7 +43,7 @@ import chrome.tabs.query as queryTabs
  * the browser changes it during session restore.
  */
 class TabGroupController(
-  private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Int) -> Unit,
+  private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Double) -> Unit,
   private val shouldSkipEnsuring: (systemWindowId: Int) -> Boolean,
 ) {
   private val groupColors = arrayOf(
@@ -58,7 +58,7 @@ class TabGroupController(
     "orange",
   )
 
-  private val groupIdsByWatWindowId = mutableMapOf<String, Int>()
+  private val groupIdsByWatWindowId = mutableMapOf<String, Double>()
   private val watWindowIdsBeingEnsured = mutableSetOf<String>()
   private val queuedWatWindows = mutableMapOf<String, WatWindow>()
 
@@ -146,7 +146,7 @@ class TabGroupController(
     return isManagedGroup(watWindow, tabGroup.id)
   }
 
-  fun isManagedGroup(watWindow: WatWindow, systemTabGroupId: Int): Boolean {
+  fun isManagedGroup(watWindow: WatWindow, systemTabGroupId: Double): Boolean {
     return systemTabGroupId == groupIdsByWatWindowId[watWindow.id] || systemTabGroupId == watWindow.systemTabGroupId
   }
 
@@ -168,7 +168,7 @@ class TabGroupController(
     }
   }
 
-  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Int? {
+  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Double? {
     val groupIds = listOfNotNull(
       groupIdsByWatWindowId[watWindow.id],
       watWindow.systemTabGroupId,
@@ -182,7 +182,7 @@ class TabGroupController(
     return tabGroups.firstOrNull { it.title == groupTitleFor(watWindow) }?.id
   }
 
-  private suspend fun rememberGroup(watWindow: WatWindow, groupId: Int) {
+  private suspend fun rememberGroup(watWindow: WatWindow, groupId: Double) {
     groupIdsByWatWindowId[watWindow.id] = groupId
     if (watWindow.systemTabGroupId != groupId) {
       onSystemTabGroupIdChanged(watWindow.id, groupId)
