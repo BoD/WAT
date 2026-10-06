@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.4.0 - 2026-10-06
+
+- Each window now is associated with a tab group
+- Add a filter entry
+
 ## v1.3.1 - 2026-03-21
 
 - Fix a bug where the UI would sometimes be unresponsive.
