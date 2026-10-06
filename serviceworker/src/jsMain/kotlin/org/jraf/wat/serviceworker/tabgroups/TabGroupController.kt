@@ -154,15 +154,15 @@ class TabGroupController(
     tabGroup.title == groupTitleFor(watWindow)
 
   suspend fun ensurePresentation(watWindow: WatWindow, tabGroup: TabGroup) {
-    if (
-      isManagedGroup(watWindow, tabGroup) &&
-      (tabGroup.title != groupTitleFor(watWindow) || tabGroup.color != colorFor(watWindow.name))
-    ) {
+    if (!isManagedGroup(watWindow, tabGroup)) return
+    val title = groupTitleFor(watWindow).takeIf { it != tabGroup.title }
+    val color = colorFor(watWindow.name).takeIf { it != tabGroup.color }
+    if (title != null || color != null) {
       updateTabGroup(
         tabGroup.id,
         updateProperties(
-          title = groupTitleFor(watWindow),
-          color = colorFor(watWindow.name),
+          title = title,
+          color = color,
         ),
       ).await()
     }
