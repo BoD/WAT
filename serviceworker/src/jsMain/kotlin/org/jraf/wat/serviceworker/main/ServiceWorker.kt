@@ -69,9 +69,11 @@ import org.jraf.wat.shared.messaging.SetTreeExpandedMessage
 import org.jraf.wat.shared.messaging.UnsaveWatWindowMessage
 import org.jraf.wat.shared.messaging.asMessage
 import kotlin.time.Duration.Companion.milliseconds
+import chrome.tabGroups.QueryInfo as TabGroupQueryInfo
 import chrome.tabGroups.onCreated as onTabGroupCreated
 import chrome.tabGroups.onRemoved as onTabGroupRemoved
 import chrome.tabGroups.onUpdated as onTabGroupUpdated
+import chrome.tabGroups.query as queryTabGroups
 import chrome.tabs.QueryInfo as TabQueryInfo
 import chrome.tabs.query as queryTabs
 import chrome.windows.remove as removeWindow
@@ -276,8 +278,11 @@ class ServiceWorker {
         ensureTabGroupForSystemWindow(group.windowId)
       }
     }
-    onTabGroupUpdated.addListener { group ->
+    onTabGroupUpdated.addListener { eventGroup ->
       GlobalScope.launch {
+        val group = queryTabGroups(TabGroupQueryInfo(windowId = eventGroup.windowId)).await()
+          .firstOrNull { it.id == eventGroup.id } ?: return@launch
+        if (eventGroup.title != group.title) return@launch
         val watWindow = watRepository.getWatWindowBySystemId(group.windowId) ?: return@launch
         if (!tabGroupController.isManagedGroup(watWindow, group)) return@launch
 

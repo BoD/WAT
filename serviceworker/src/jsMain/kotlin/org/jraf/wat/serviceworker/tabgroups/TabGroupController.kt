@@ -43,7 +43,7 @@ import chrome.tabs.query as queryTabs
  * the browser changes it during session restore.
  */
 class TabGroupController(
-  private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Int) -> Unit,
+  private val onSystemTabGroupIdChanged: suspend (watWindowId: String, systemTabGroupId: Double) -> Unit,
   private val shouldSkipEnsuring: (systemWindowId: Int) -> Boolean,
 ) {
   private val groupColors = arrayOf(
@@ -58,7 +58,7 @@ class TabGroupController(
     "orange",
   )
 
-  private val groupIdsByWatWindowId = mutableMapOf<String, Int>()
+  private val groupIdsByWatWindowId = mutableMapOf<String, Double>()
   private val watWindowIdsBeingEnsured = mutableSetOf<String>()
   private val queuedWatWindows = mutableMapOf<String, WatWindow>()
 
@@ -146,7 +146,7 @@ class TabGroupController(
     return isManagedGroup(watWindow, tabGroup.id)
   }
 
-  fun isManagedGroup(watWindow: WatWindow, systemTabGroupId: Int): Boolean {
+  fun isManagedGroup(watWindow: WatWindow, systemTabGroupId: Double): Boolean {
     return systemTabGroupId == groupIdsByWatWindowId[watWindow.id] || systemTabGroupId == watWindow.systemTabGroupId
   }
 
@@ -154,21 +154,21 @@ class TabGroupController(
     tabGroup.title == groupTitleFor(watWindow)
 
   suspend fun ensurePresentation(watWindow: WatWindow, tabGroup: TabGroup) {
-    if (
-      isManagedGroup(watWindow, tabGroup) &&
-      (tabGroup.title != groupTitleFor(watWindow) || tabGroup.color != colorFor(watWindow.name))
-    ) {
+    if (!isManagedGroup(watWindow, tabGroup)) return
+    val title = groupTitleFor(watWindow).takeIf { it != tabGroup.title }
+    val color = colorFor(watWindow.name).takeIf { it != tabGroup.color }
+    if (title != null || color != null) {
       updateTabGroup(
         tabGroup.id,
         updateProperties(
-          title = groupTitleFor(watWindow),
-          color = colorFor(watWindow.name),
+          title = title,
+          color = color,
         ),
       ).await()
     }
   }
 
-  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Int? {
+  private fun findGroup(tabGroups: Array<TabGroup>, watWindow: WatWindow): Double? {
     val groupIds = listOfNotNull(
       groupIdsByWatWindowId[watWindow.id],
       watWindow.systemTabGroupId,
@@ -182,7 +182,7 @@ class TabGroupController(
     return tabGroups.firstOrNull { it.title == groupTitleFor(watWindow) }?.id
   }
 
-  private suspend fun rememberGroup(watWindow: WatWindow, groupId: Int) {
+  private suspend fun rememberGroup(watWindow: WatWindow, groupId: Double) {
     groupIdsByWatWindowId[watWindow.id] = groupId
     if (watWindow.systemTabGroupId != groupId) {
       onSystemTabGroupIdChanged(watWindow.id, groupId)
