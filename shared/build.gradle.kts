@@ -9,6 +9,7 @@ val generateVersionKtTask: TaskProvider<Task> = tasks.register("generateVersionK
   val outputDir = layout.buildDirectory.dir("generated/source/kotlin").get().asFile
   outputs.dir(outputDir)
   val versionProvider = providers.provider { rootProject.version.toString() }
+  inputs.property("version", versionProvider)
   doFirst {
     val outputWithPackageDir = File(outputDir, "org/jraf/wat/shared").apply { mkdirs() }
     File(outputWithPackageDir, "Version.kt").writeText(
